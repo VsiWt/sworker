@@ -1,7 +1,7 @@
 #!/bin/bash
 
 root_dir=`pwd`
-github_repo=GYZHANG2019
+github_user=GYZHANG2019
 gerrit_user=cn1208
 
 function create_folder(){
@@ -17,16 +17,16 @@ function clone_amd_gits(){
 
     rm ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel ma35 -rf
     echo "clone ma35_vsi_libs.git from github..." &&
-    git clone git@github.com:$github_repo/ma35_vsi_libs.git -b prototype_production &&
+    git clone git@github.com:$github_user/ma35_vsi_libs.git -b prototype_production &&
 
     echo "clone ma35_ffmpeg.git from github..." &&
-    git clone git@github.com:$github_repo/ma35_ffmpeg.git -b prototype_production &&
+    git clone git@github.com:$github_user/ma35_ffmpeg.git -b prototype_production &&
 
     echo "clone ma35_linux_kernel.git from github..." &&
-    git clone git@github.com:$github_repo/ma35_linux_kernel.git -b prototype_verification &&
+    git clone git@github.com:$github_user/ma35_linux_kernel.git -b prototype_verification &&
 
     echo "clone ma35.git from github..." &&
-    git clone git@github.com:$github_repo/ma35.git &&
+    git clone git@github.com:$github_user/ma35.git &&
 
     echo -e "done"
 }
@@ -49,12 +49,12 @@ function clone_vsi_gits(){
     cd ma35_vsi_libs/src &&
     rm vpe common VC8000D VC8000E build VIP2D drivers -rf &&
     echo "clone vsi libs from VSI gerrit..." &&
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/common" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "common/.git/hooks/" &&
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/VC8000D" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VC8000D/.git/hooks/" &&
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/VC8000E" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VC8000E/.git/hooks/" &&
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "vpe/.git/hooks/" &&
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/transcoding" build -b master && scp -p -P $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "build/.git/hooks/" &&
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/GAL/driver" VIP2D -b spsd/SuperNova && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VIP2D/.git/hooks/" &&
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/common" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "common/.git/hooks/"
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/VC8000D" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VC8000D/.git/hooks/"
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/VC8000E" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VC8000E/.git/hooks/"
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "vpe/.git/hooks/"
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/transcoding" build -b master && scp -p -P $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "build/.git/hooks/"
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/GAL/driver" VIP2D -b spsd/SuperNova && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VIP2D/.git/hooks/"
 
     echo "Link ffmpeg from ma35_ffmpeg to ma35_vsi_libs/src/ffmpeg" &&
     cd $root_dir &&
@@ -75,7 +75,7 @@ function build(){
 }
 
 function remove_rpath(){
-    cd $root_dir/package;
+    cd $root_dir/build/out/$output_pkg_name;
     path=$(ldd libvpi.so | grep "x86_64_linux/libh2enc.so" |  awk '{print $1}')
     patchelf --remove-needed $path libvpi.so
 
@@ -92,25 +92,31 @@ function remove_rpath(){
 
 function package(){
     cd $root_dir;
-    rm package -rf && mkdir package
-    cp build/_deps/ffmpeg-build/ffmpeg package/
-    cp build/_deps/ffmpeg-build/ffprobe package/
-    cp build/_deps/shelf-src/xav1sdk/libxav1sdk.so package/
-    cp build/_deps/vsi_libs-build/src/vpe/src/libvpi.so package/
-    cp ma35_vsi_libs/src/vpe/build/install.sh package/
-    cp ma35_vsi_libs/src/vpe/prebuild/libs/x86_64_linux/* package/ -rf
-    cp ma35_vsi_libs/src/vpe/tools/stest.sh package/ -rf
+    version=$(grep -o '".*"' ma35_vsi_libs/src/vpe/inc/version.h | sed 's/"//g')
+    output_pkg_name=cmake_vpe_package_x86_64_linux_$version
+    outpath=out/$output_pkg_name
+    cd build/
 
+    rm $outpath -rf && mkdir -p $outpath
+    cp _deps/ffmpeg-build/ffmpeg $outpath/
+    cp _deps/ffmpeg-build/ffprobe $outpath/
+    cp _deps/shelf-src/xav1sdk/libxav1sdk.so $outpath/
+    cp _deps/vsi_libs-build/src/vpe/src/libvpi.so $outpath/
+    cp ../ma35_vsi_libs/src/vpe/build/install.sh $outpath/
+    cp ../ma35_vsi_libs/src/vpe/prebuild/libs/x86_64_linux/* $outpath/ -rf
+    cp ../ma35_vsi_libs/src/vpe/tools/stest.sh $outpath/ -rf
+
+    cd out
+    tar -czf $output_pkg_name.tgz $output_pkg_name/
     remove_rpath
-    echo "package was generated"
+    echo "$output_pkg_name.tgz was generated at `pwd`"
 }
 
 function help(){
     echo "this script will pull both AMD gits and/or VSI gits, and do compiling, finally generate test package"
-    echo "$0 --github_repo=:  set the github repo name for AMD gits"
-    echo "$0 --gerrit_user=:  set VSI gerrit user account"
-    echo "$0 new_amd:         Pull AMD build environment, and fetch AMD gits， and build it."
-    echo "$0 new_vsi:         Pull AMD build environment, and fetch VSI gits， and build it."
+    echo "$0 --github_user=:  set the github account wich contains AMD gits"
+    echo "$0 --gerrit_user=:  set the gerrit account wich contains VSI gits"
+    echo "$0 new_project:     create one new rmpty project."
     echo "$0 clone_amd_gits:  clone AMD gits only."
     echo "$0 clone_vsi_gits:  clone VSI gits only"
     echo "$0 build:           do full build"
@@ -123,30 +129,20 @@ for (( i=1; i <=$#; i++ )); do
     next_opt=$((i+1))
     next_value=${!next_opt}
     case "$opt" in
-    --github_repo=*)
-        echo "github_repo=$optarg"
-        github_repo=$optarg;;
+    --github_user=*)
+        echo "github_user=$optarg"
+        github_user=$optarg;;
     --gerrit_user=*)
         echo "gerrit_user=$optarg"
         gerrit_user=$optarg;;
-    new_amd)
-        echo "clone pure AMD gits and build"
-        root_dir=$(realpath $(create_folder));
-        clone_amd_gits && build && package;
-        exit 1;;
-    new_vsi)
-        echo "clone AMD gits and VSI gits, and build"
-        root_dir=$(realpath $(create_folder));
-        clone_amd_gits && clone_vsi_gits && build && package;
-        exit 1;;
+    new_project)
+        root_dir=$(realpath $(create_folder))
+        echo "new project $root_dir had been created";;
     clone_amd_gits)
-        echo "clone AMD gits"
         clone_amd_gits;;
     clone_vsi_gits)
-        echo "clone VSI gits"
         clone_vsi_gits;;
     build)
-        echo "Start build..."
         build;;
     package)
         package;;
