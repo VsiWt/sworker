@@ -49,12 +49,12 @@ function clone_vsi_gits(){
     cd ma35_vsi_libs/src &&
     rm vpe common VC8000D VC8000E build VIP2D drivers -rf &&
     echo "clone vsi libs from VSI gerrit..." &&
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/common" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "common/.git/hooks/" &&
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/VC8000D" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VC8000D/.git/hooks/" &&
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/VC8000E" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VC8000E/.git/hooks/" &&
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "vpe/.git/hooks/" &&
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/transcoding" build -b master && scp -p -P $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "build/.git/hooks/" &&
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/GAL/driver" VIP2D -b spsd/SuperNova && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VIP2D/.git/hooks/" &&
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/common" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "common/.git/hooks/"
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/VC8000D" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VC8000D/.git/hooks/"
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/VC8000E" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VC8000E/.git/hooks/"
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "vpe/.git/hooks/"
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/transcoding" build -b master && scp -p -P $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "build/.git/hooks/"
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/GAL/driver" VIP2D -b spsd/SuperNova && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VIP2D/.git/hooks/"
 
     echo "Link ffmpeg from ma35_ffmpeg to ma35_vsi_libs/src/ffmpeg" &&
     cd $root_dir &&
@@ -75,7 +75,7 @@ function build(){
 }
 
 function remove_rpath(){
-    cd $root_dir/package;
+    cd $root_dir/build/out/$output_pkg_name;
     path=$(ldd libvpi.so | grep "x86_64_linux/libh2enc.so" |  awk '{print $1}')
     patchelf --remove-needed $path libvpi.so
 
@@ -92,17 +92,24 @@ function remove_rpath(){
 
 function package(){
     cd $root_dir;
-    rm package -rf && mkdir package
-    cp build/_deps/ffmpeg-build/ffmpeg package/
-    cp build/_deps/ffmpeg-build/ffprobe package/
-    cp build/_deps/shelf-src/xav1sdk/libxav1sdk.so package/
-    cp build/_deps/vsi_libs-build/src/vpe/src/libvpi.so package/
-    cp ma35_vsi_libs/src/vpe/build/install.sh package/
-    cp ma35_vsi_libs/src/vpe/prebuild/libs/x86_64_linux/* package/ -rf
-    cp ma35_vsi_libs/src/vpe/tools/stest.sh package/ -rf
+    version=$(grep -o '".*"' ma35_vsi_libs/src/vpe/inc/version.h | sed 's/"//g')
+    output_pkg_name=cmake_vpe_package_x86_64_linux_$version
+    outpath=out/$output_pkg_name
+    cd build/
 
+    rm $outpath -rf && mkdir -p $outpath
+    cp _deps/ffmpeg-build/ffmpeg $outpath/
+    cp _deps/ffmpeg-build/ffprobe $outpath/
+    cp _deps/shelf-src/xav1sdk/libxav1sdk.so $outpath/
+    cp _deps/vsi_libs-build/src/vpe/src/libvpi.so $outpath/
+    cp ../ma35_vsi_libs/src/vpe/build/install.sh $outpath/
+    cp ../ma35_vsi_libs/src/vpe/prebuild/libs/x86_64_linux/* $outpath/ -rf
+    cp ../ma35_vsi_libs/src/vpe/tools/stest.sh $outpath/ -rf
+
+    cd out
+    tar -czf $output_pkg_name.tgz $output_pkg_name/
     remove_rpath
-    echo "package was generated"
+    echo "$output_pkg_name.tgz was generated at `pwd`"
 }
 
 function help(){
