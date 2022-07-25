@@ -5,6 +5,7 @@ gerrit_user=cn1208
 amd_vsi_lib_branch=prototype_production
 amd_ffmpeg_branch=prototype_production
 amd_drivers_branch=prototype_production
+amd_shelf_branch=prototype_production
 amd_ma35_branch=develop
 amd_gits_mirror=y
 
@@ -20,9 +21,9 @@ function create_folder(){
 function clone_amd_gits(){
     cd $root_dir;
 
-    rm ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel ma35 -rf
+    rm ma35_* -rf
 
-    if [ "$amd_gits_mirror" == "y" ]; then
+    if [[ "$amd_gits_mirror" == "y" ]]; then
         echo "clone ma35_vsi_libs.git from mirror github..."
         git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs" -b $amd_vsi_lib_branch
 
@@ -34,6 +35,9 @@ function clone_amd_gits(){
 
         echo "clone ma35.git from mirror github..."
         git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35" -b $amd_ma35_branch
+
+        echo "clone shelf.git from mirror github..."
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_shelf" -b $amd_shelf_branch
     else
         echo "clone ma35_vsi_libs.git from github..."
         git clone git@github.com:Xilinx-Projects/ma35_vsi_libs.git -b $amd_vsi_lib_branch
@@ -46,6 +50,9 @@ function clone_amd_gits(){
 
         echo "clone ma35.git from github..."
         git clone git@github.com:Xilinx-Projects/ma35.git -b $amd_ma35_branch
+
+        echo "clone shelf.git from github..."
+        git clone git@github.com:Xilinx-Projects/ma35_shelf.git -b $amd_shelf_branch
     fi
 
     echo -e "done"
@@ -89,7 +96,7 @@ function build(){
     echo "Building full project with CMake..."
     cd $root_dir
     rm build -rf && mkdir build && cd build
-    cmake ../ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_REPOS=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_ffmpeg=true
+    cmake ../ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_REPOS=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_ffmpeg=true
     ninja ffmpeg_vsi sn_int
     echo -e "done"
 }
@@ -140,6 +147,7 @@ function help(){
     echo "$0 --amd_ffmpeg_branch=:      set the AMD gits ffmpeg branch name"
     echo "$0 --amd_drivers_branch=:     set the AMD gits drivers branch name"
     echo "$0 --amd_ma35_branch=:        set the AMD gits ma35 branch name"
+    echo "$0 --amd_shelf_branch=:       set the AMD gits shelf branch name"
     echo "$0 new_project:               create one new rmpty project."
     echo "$0 clone_amd_gits:            clone AMD gits only."
     echo "$0 clone_vsi_gits:            clone VSI gits only"
@@ -171,6 +179,9 @@ for (( i=1; i <=$#; i++ )); do
     --amd_ma35_branch=*)
         echo "amd_ma35_branch=$optarg"
         amd_ma35_branch=$optarg;;
+    --amd_shelf_branch=*)
+        echo "amd_shelf_branch=$optarg"
+        amd_shelf_branch=$optarg;;
     new_project)
         root_dir=$(realpath $(create_folder))
         echo "new project $root_dir had been created";;
