@@ -2,12 +2,14 @@
 
 root_dir=`pwd`
 gerrit_user=cn1208
+github_user=Xilinx-Projects
 amd_vsi_lib_branch=prototype_production
 amd_ffmpeg_branch=prototype_production
 amd_drivers_branch=prototype_production
 amd_shelf_branch=prototype_production
 amd_ma35_branch=develop
 amd_gits_mirror=y
+include_sdk=n
 
 set -o pipefail
 function create_folder(){
@@ -40,19 +42,19 @@ function clone_amd_gits(){
         git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_shelf" -b $amd_shelf_branch
     else
         echo "clone ma35_vsi_libs.git from github..."
-        git clone git@github.com:Xilinx-Projects/ma35_vsi_libs.git -b $amd_vsi_lib_branch
+        git clone git@github.com:$github_user/ma35_vsi_libs.git -b $amd_vsi_lib_branch
 
         echo "clone ma35_ffmpeg.git from github..."
-        git clone git@github.com:Xilinx-Projects/ma35_ffmpeg.git -b $amd_ffmpeg_branch
+        git clone git@github.com:$github_user/ma35_ffmpeg.git -b $amd_ffmpeg_branch
 
         echo "clone ma35_linux_kernel.git from github..."
-        git clone git@github.com:Xilinx-Projects/ma35_linux_kernel.git -b $amd_drivers_branch
+        git clone git@github.com:$github_user/ma35_linux_kernel.git -b $amd_drivers_branch
 
         echo "clone ma35.git from github..."
-        git clone git@github.com:Xilinx-Projects/ma35.git -b $amd_ma35_branch
+        git clone git@github.com:$github_user/ma35.git -b $amd_ma35_branch
 
         echo "clone shelf.git from github..."
-        git clone git@github.com:Xilinx-Projects/ma35_shelf.git -b $amd_shelf_branch
+        git clone git@github.com:$github_user/ma35_shelf.git -b $amd_shelf_branch
     fi
 
     echo -e "done"
@@ -76,13 +78,14 @@ function clone_vsi_gits(){
     cd ma35_vsi_libs/src
     rm vpe common VC8000D VC8000E build VIP2D drivers -rf
     echo "clone vsi libs from VSI gerrit..."
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/common" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "common/.git/hooks/"
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/VC8000D" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VC8000D/.git/hooks/"
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/VC8000E" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VC8000E/.git/hooks/"
     git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "vpe/.git/hooks/"
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/transcoding" build -b master && scp -p -P $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "build/.git/hooks/"
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/GAL/driver" VIP2D -b spsd/SuperNova && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VIP2D/.git/hooks/"
-
+    if [ "$include_sdk" == "y" ]; then
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/common" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "common/.git/hooks/"
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/VC8000D" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VC8000D/.git/hooks/"
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/VC8000E" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VC8000E/.git/hooks/"
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/transcoding" build -b master && scp -p -P $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "build/.git/hooks/"
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/GAL/driver" VIP2D -b spsd/SuperNova && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VIP2D/.git/hooks/"
+    fi
     echo "Link ffmpeg from ma35_ffmpeg to ma35_vsi_libs/src/ffmpeg"
     cd $root_dir
     cd ma35_vsi_libs/src/
@@ -95,7 +98,10 @@ function clone_vsi_gits(){
 function build(){
     echo "Building full project with CMake..."
     cd $root_dir
-    rm build -rf && mkdir build && cd build
+    if [ ! -d build ]; then
+        mkdir build
+    fi
+    cd build
     cmake ../ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_REPOS=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_ffmpeg=true
     ninja ffmpeg_vsi sn_int
     echo -e "done"
@@ -114,7 +120,6 @@ function remove_rpath(){
 
     path=$(ldd libvpi.so | grep "x86_64_linux/libcache.so" |  awk '{print $1}')
     patchelf --remove-needed $path libvpi.so
-
     patchelf --remove-rpath $path libvpi.so
 
     echo "rpath in libvpi.so had been removed"
@@ -133,9 +138,9 @@ function package(){
     rm $outpath -rf && mkdir -p $outpath
     cp _deps/ffmpeg-build/ffmpeg $outpath/
     cp _deps/ffmpeg-build/ffprobe $outpath/
-    cp _deps/shelf-src/xav1sdk/libxav1sdk.so $outpath/
     cp _deps/vsi_libs-build/sdk/xabr/libxabrsdk.so $outpath/
     cp _deps/vsi_libs-build/src/vpe/src/libvpi.so $outpath/
+    cp ../ma35_shelf/xav1sdk/libxav1sdk.so $outpath/
     cp ../ma35_vsi_libs/src/vpe/build/install.sh $outpath/
     cp ../ma35_vsi_libs/src/vpe/prebuild/libs/x86_64_linux/* $outpath/ -rf
     cp ../ma35_vsi_libs/src/vpe/tools/stest.sh $outpath/ -rf
@@ -148,13 +153,15 @@ function package(){
 
 function help(){
     echo "this script will pull both AMD gits and/or VSI gits, and do compiling, finally generate test package"
-    echo "$0 --amd_gits_mirror=:        y/n, whether enable the gits mirror"
-    echo "$0 --gerrit_user=:            set the gerrit account wich contains VSI gits"
-    echo "$0 --amd_vsi_lib_branch=:     set the AMD gits vsi_lib branch name"
-    echo "$0 --amd_ffmpeg_branch=:      set the AMD gits ffmpeg branch name"
-    echo "$0 --amd_drivers_branch=:     set the AMD gits drivers branch name"
-    echo "$0 --amd_ma35_branch=:        set the AMD gits ma35 branch name"
-    echo "$0 --amd_shelf_branch=:       set the AMD gits shelf branch name"
+    echo "$0 --amd_gits_mirror=:        y/n, whether enable the gits mirror.[$amd_gits_mirror] "
+    echo "$0 --gerrit_user=:            set the gerrit account wich contains VSI gits.[$gerrit_user]"
+    echo "$0 --github_user=:            set the github account wich contains AMD gits.[$github_user]"
+    echo "$0 --amd_vsi_lib_branch=:     set the AMD gits vsi_lib branch name.[$amd_vsi_lib_branch]"
+    echo "$0 --amd_ffmpeg_branch=:      set the AMD gits ffmpeg branch name.[$amd_ffmpeg_branch]"
+    echo "$0 --amd_drivers_branch=:     set the AMD gits drivers branch name.[$amd_drivers_branch]"
+    echo "$0 --amd_ma35_branch=:        set the AMD gits ma35 branch name.[$amd_ma35_branch]"
+    echo "$0 --amd_shelf_branch=:       set the AMD gits shelf branch name.[$amd_shelf_branch]"
+    echo "$0 --include_sdk=:            y/n: whether clone VSI SDK code.[$include_sdk]"
     echo "$0 new_project:               create one new rmpty project."
     echo "$0 clone_amd_gits:            clone AMD gits only."
     echo "$0 clone_vsi_gits:            clone VSI gits only"
@@ -174,6 +181,9 @@ for (( i=1; i <=$#; i++ )); do
     --gerrit_user=*)
         echo "gerrit_user=$optarg"
         gerrit_user=$optarg;;
+    --github_user=*)
+        echo "github_user=$optarg"
+        github_user=$optarg;;
     --amd_vsi_lib_branch=*)
         echo "amd_vsi_lib_branch=$optarg"
         amd_vsi_lib_branch=$optarg;;
@@ -189,6 +199,9 @@ for (( i=1; i <=$#; i++ )); do
     --amd_shelf_branch=*)
         echo "amd_shelf_branch=$optarg"
         amd_shelf_branch=$optarg;;
+    --include_sdk=*)
+        echo "include_sdk=$optarg"
+        include_sdk=$optarg;;
     new_project)
         root_dir=$(realpath $(create_folder))
         echo "new project $root_dir had been created";;
