@@ -112,9 +112,15 @@ function remove_rpath(){
     path=$(ldd libvpi.so | grep "x86_64_linux/libcommon.so" |  awk '{print $1}')
     patchelf --remove-needed $path libvpi.so
 
+    path=$(ldd libvpi.so | grep "x86_64_linux/libcache.so" |  awk '{print $1}')
+    patchelf --remove-needed $path libvpi.so
+
     patchelf --remove-rpath $path libvpi.so
 
     echo "rpath in libvpi.so had been removed"
+
+    path=$(ldd ffmpeg | grep "libxav1sdk.so" |  awk '{print $1}')
+    patchelf --remove-needed $path ffmpeg
 }
 
 function package(){
@@ -128,6 +134,7 @@ function package(){
     cp _deps/ffmpeg-build/ffmpeg $outpath/
     cp _deps/ffmpeg-build/ffprobe $outpath/
     cp _deps/shelf-src/xav1sdk/libxav1sdk.so $outpath/
+    cp _deps/vsi_libs-build/sdk/xabr/libxabrsdk.so $outpath/
     cp _deps/vsi_libs-build/src/vpe/src/libvpi.so $outpath/
     cp ../ma35_vsi_libs/src/vpe/build/install.sh $outpath/
     cp ../ma35_vsi_libs/src/vpe/prebuild/libs/x86_64_linux/* $outpath/ -rf
