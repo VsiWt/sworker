@@ -2,6 +2,10 @@
 
 root_dir=`pwd`
 gerrit_user=cn1208
+amd_vsi_lib_branch=prototype_production
+amd_ffmpeg_branch=prototype_production
+amd_drivers_branch=prototype_production
+amd_ma35_branch=develop
 
 set -o pipefail
 function create_folder(){
@@ -14,20 +18,19 @@ function create_folder(){
 
 function clone_amd_gits(){
     cd $root_dir;
-    amd_branch=prototype_production
 
     rm ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel ma35 -rf
     echo "clone ma35_vsi_libs.git from mirror github..."
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs" -b $amd_branch
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs" -b $amd_vsi_lib_branch
 
     echo "clone ma35_ffmpeg.git from github..."
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_ffmpeg" -b $amd_branch
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_ffmpeg" -b $amd_ffmpeg_branch
 
     echo "clone ma35_linux_kernel.git from github..."
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_linux_kernel" -b $amd_branch
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_linux_kernel" -b $amd_drivers_branch
 
     echo "clone ma35.git from github..."
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35" -b develop
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35" -b $amd_ma35_branch
 
     echo -e "done"
 }
@@ -115,12 +118,16 @@ function package(){
 
 function help(){
     echo "this script will pull both AMD gits and/or VSI gits, and do compiling, finally generate test package"
-    echo "$0 --gerrit_user=:  set the gerrit account wich contains VSI gits"
-    echo "$0 new_project:     create one new rmpty project."
-    echo "$0 clone_amd_gits:  clone AMD gits only."
-    echo "$0 clone_vsi_gits:  clone VSI gits only"
-    echo "$0 build:           do full build"
-    echo "$0 package:         package all requied files"
+    echo "$0 --gerrit_user=:            set the gerrit account wich contains VSI gits"
+    echo "$0 --amd_vsi_lib_branch=:     set the AMD gits vsi_lib branch name"
+    echo "$0 --amd_ffmpeg_branch=:      set the AMD gits ffmpeg branch name"
+    echo "$0 --amd_drivers_branch=:     set the AMD gits drivers branch name"
+    echo "$0 --amd_ma35_branch=:        set the AMD gits ma35 branch name"
+    echo "$0 new_project:               create one new rmpty project."
+    echo "$0 clone_amd_gits:            clone AMD gits only."
+    echo "$0 clone_vsi_gits:            clone VSI gits only"
+    echo "$0 build:                     do full build"
+    echo "$0 package:                   package all requied files"
 }
 
 for (( i=1; i <=$#; i++ )); do
@@ -132,6 +139,18 @@ for (( i=1; i <=$#; i++ )); do
     --gerrit_user=*)
         echo "gerrit_user=$optarg"
         gerrit_user=$optarg;;
+    --amd_vsi_lib_branch=*)
+        echo "amd_vsi_lib_branch=$optarg"
+        amd_vsi_lib_branch=$optarg;;
+    --amd_ffmpeg_branch=*)
+        echo "amd_ffmpeg_branch=$optarg"
+        amd_ffmpeg_branch=$optarg;;
+    --amd_drivers_branch=*)
+        echo "amd_drivers_branch=$optarg"
+        amd_drivers_branch=$optarg;;
+    --amd_ma35_branch=*)
+        echo "amd_ma35_branch=$optarg"
+        amd_ma35_branch=$optarg;;
     new_project)
         root_dir=$(realpath $(create_folder))
         echo "new project $root_dir had been created";;
