@@ -6,6 +6,7 @@ amd_vsi_lib_branch=prototype_production
 amd_ffmpeg_branch=prototype_production
 amd_drivers_branch=prototype_production
 amd_ma35_branch=develop
+amd_gits_mirror=y
 
 set -o pipefail
 function create_folder(){
@@ -20,17 +21,32 @@ function clone_amd_gits(){
     cd $root_dir;
 
     rm ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel ma35 -rf
-    echo "clone ma35_vsi_libs.git from mirror github..."
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs" -b $amd_vsi_lib_branch
 
-    echo "clone ma35_ffmpeg.git from github..."
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_ffmpeg" -b $amd_ffmpeg_branch
+    if [ "$amd_gits_mirror" == "y" ]; then
+        echo "clone ma35_vsi_libs.git from mirror github..."
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs" -b $amd_vsi_lib_branch
 
-    echo "clone ma35_linux_kernel.git from github..."
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_linux_kernel" -b $amd_drivers_branch
+        echo "clone ma35_ffmpeg.git from mirror github..."
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_ffmpeg" -b $amd_ffmpeg_branch
 
-    echo "clone ma35.git from github..."
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35" -b $amd_ma35_branch
+        echo "clone ma35_linux_kernel.git from mirror github..."
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_linux_kernel" -b $amd_drivers_branch
+
+        echo "clone ma35.git from mirror github..."
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35" -b $amd_ma35_branch
+    else
+        echo "clone ma35_vsi_libs.git from github..."
+        git clone git@github.com:Xilinx-Projects/ma35_vsi_libs.git -b $amd_vsi_lib_branch
+
+        echo "clone ma35_ffmpeg.git from github..."
+        git clone git@github.com:Xilinx-Projects/ma35_ffmpeg.git -b $amd_ffmpeg_branch
+
+        echo "clone ma35_linux_kernel.git from github..."
+        git clone git@github.com:Xilinx-Projects/ma35_linux_kernel.git -b $amd_drivers_branch
+
+        echo "clone ma35.git from github..."
+        git clone git@github.com:Xilinx-Projects/ma35.git -b $amd_ma35_branch
+    fi
 
     echo -e "done"
 }
@@ -118,6 +134,7 @@ function package(){
 
 function help(){
     echo "this script will pull both AMD gits and/or VSI gits, and do compiling, finally generate test package"
+    echo "$0 --amd_gits_mirror=:        y/n, whether enable the gits mirror"
     echo "$0 --gerrit_user=:            set the gerrit account wich contains VSI gits"
     echo "$0 --amd_vsi_lib_branch=:     set the AMD gits vsi_lib branch name"
     echo "$0 --amd_ffmpeg_branch=:      set the AMD gits ffmpeg branch name"
@@ -136,6 +153,9 @@ for (( i=1; i <=$#; i++ )); do
     next_opt=$((i+1))
     next_value=${!next_opt}
     case "$opt" in
+    --amd_gits_mirror=*)
+        echo "amd_gits_mirror=$optarg"
+        amd_gits_mirror=$optarg;;
     --gerrit_user=*)
         echo "gerrit_user=$optarg"
         gerrit_user=$optarg;;
