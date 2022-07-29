@@ -3,10 +3,10 @@
 root_dir=`pwd`
 gerrit_user=cn1208
 github_user=Xilinx-Projects
-amd_vsi_lib_branch=prototype_production
-amd_ffmpeg_branch=prototype_production
-amd_drivers_branch=prototype_production
-amd_shelf_branch=prototype_production
+amd_vsi_lib_branch=develop
+amd_ffmpeg_branch=develop
+amd_drivers_branch=develop
+amd_shelf_branch=develop
 amd_ma35_branch=develop
 amd_gits_mirror=y
 include_sdk=n
@@ -121,11 +121,7 @@ function remove_rpath(){
     path=$(ldd libvpi.so | grep "x86_64_linux/libcache.so" |  awk '{print $1}')
     patchelf --remove-needed $path libvpi.so
     patchelf --remove-rpath $path libvpi.so
-
     echo "rpath in libvpi.so had been removed"
-
-    path=$(ldd ffmpeg | grep "libxav1sdk.so" |  awk '{print $1}')
-    patchelf --remove-needed $path ffmpeg
 }
 
 function package(){
@@ -136,13 +132,19 @@ function package(){
     cd build/
 
     rm $outpath -rf && mkdir -p $outpath
+    cp ../ma35_vsi_libs/src/vpe/prebuild/libs/x86_64_linux/* $outpath/ -rf
     cp _deps/ffmpeg-build/ffmpeg $outpath/
     cp _deps/ffmpeg-build/ffprobe $outpath/
     cp _deps/vsi_libs-build/sdk/xabr/libxabrsdk.so $outpath/
     cp _deps/vsi_libs-build/src/vpe/src/libvpi.so $outpath/
+    cp _deps/sn_int_ext-build/lib/libsn_int.so $outpath/
     cp ../ma35_shelf/xav1sdk/libxav1sdk.so $outpath/
+    cp ../ma35_shelf/ma35_sn_int/libxabr_sim.so $outpath/cmodel/
+    cp ../ma35_shelf/ma35_sn_int/libvc8000d_sim.so $outpath/cmodel/
+    cp ../ma35_shelf/ma35_sn_int/libxav1_sim.so $outpath/cmodel/
+    cp ../ma35_shelf/ma35_sn_int/libvc8000e_sim.so $outpath/cmodel/
+    cp ../ma35_shelf/host_device_algo/libhost_device_algo.so $outpath/
     cp ../ma35_vsi_libs/src/vpe/build/install.sh $outpath/
-    cp ../ma35_vsi_libs/src/vpe/prebuild/libs/x86_64_linux/* $outpath/ -rf
     cp ../ma35_vsi_libs/src/vpe/tools/stest.sh $outpath/ -rf
 
     cd out
