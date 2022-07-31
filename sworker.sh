@@ -109,18 +109,11 @@ function build(){
 
 function remove_rpath(){
     cd $root_dir/build/out/$output_pkg_name;
-    path=$(ldd libvpi.so | grep "x86_64_linux/libh2enc.so" |  awk '{print $1}')
-    patchelf --remove-needed $path libvpi.so
-
-    path=$(ldd libvpi.so | grep "x86_64_linux/libg2dec.so" |  awk '{print $1}')
-    patchelf --remove-needed $path libvpi.so
-
-    path=$(ldd libvpi.so | grep "x86_64_linux/libcommon.so" |  awk '{print $1}')
-    patchelf --remove-needed $path libvpi.so
-
-    path=$(ldd libvpi.so | grep "x86_64_linux/libcache.so" |  awk '{print $1}')
-    patchelf --remove-needed $path libvpi.so
-    patchelf --remove-rpath $path libvpi.so
+    libs=(GAL OpenVX xabrsdk common VSC ArchModelSw NNArchPerf h2enc g2dec common.so cache)
+    for lib in libs; do
+        patchelf --remove-needed lib$lib.so libvpi.so
+    done
+    cd -
     echo "rpath in libvpi.so had been removed"
 }
 
@@ -132,6 +125,7 @@ function package(){
     cd build/
 
     rm $outpath -rf && mkdir -p $outpath
+    ## copy libs
     cp ../ma35_vsi_libs/src/vpe/prebuild/libs/x86_64_linux/* $outpath/ -rf
     cp _deps/ffmpeg-build/ffmpeg $outpath/
     cp _deps/ffmpeg-build/ffprobe $outpath/
@@ -139,17 +133,31 @@ function package(){
     cp _deps/vsi_libs-build/src/vpe/src/libvpi.so $outpath/
     cp _deps/sn_int_ext-build/lib/libsn_int.so $outpath/
     cp ../ma35_shelf/xav1sdk/libxav1sdk.so $outpath/
+    if [ ! -d "$outpath/cmodel/" ]; then
+        mkdir $outpath/cmodel/
+    fi
+
+    ## copy cmodel related
     cp ../ma35_shelf/ma35_sn_int/libxabr_sim.so $outpath/cmodel/
     cp ../ma35_shelf/ma35_sn_int/libvc8000d_sim.so $outpath/cmodel/
     cp ../ma35_shelf/ma35_sn_int/libxav1_sim.so $outpath/cmodel/
     cp ../ma35_shelf/ma35_sn_int/libvc8000e_sim.so $outpath/cmodel/
     cp ../ma35_shelf/host_device_algo/libhost_device_algo.so $outpath/
+
+    ## copy drivers
+    mv ../ma35_linux_kernel/src ../ma35_linux_kernel/drivers
+    mv ../ma35_linux_kernel/drivers/.git ../ma35_linux_kernel/vsi.git
+    cd ../ma35_linux_kernel/ && tar -czf ../build/$outpath/drivers.tgz drivers && cd -
+    mv ../ma35_linux_kernel/vsi.git ../ma35_linux_kernel/drivers/.git
+    mv ../ma35_linux_kernel/drivers ../ma35_linux_kernel/src
+
+    ## copy scripts
     cp ../ma35_vsi_libs/src/vpe/build/install.sh $outpath/
-    cp ../ma35_vsi_libs/src/vpe/tools/stest.sh $outpath/ -rf
+    cp ../ma35_vsi_libs/src/vpe/tools/stest.sh $outpath/
 
     cd out
-    tar -czf $output_pkg_name.tgz $output_pkg_name/
     remove_rpath
+    tar -czf $output_pkg_name.tgz $output_pkg_name/
     echo "$output_pkg_name.tgz was generated at `pwd`"
 }
 
