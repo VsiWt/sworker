@@ -9,7 +9,7 @@ amd_drivers_branch=develop
 amd_shelf_branch=develop
 amd_ma35_branch=develop
 amd_gits_mirror=y
-include_sdk=n
+include_sdk=y
 
 set -o pipefail
 function create_folder(){
@@ -23,7 +23,7 @@ function create_folder(){
 function clone_amd_gits(){
     cd $root_dir;
 
-    rm ma35_* -rf
+    rm ma35* -rf
 
     if [[ "$amd_gits_mirror" == "y" ]]; then
         echo "clone ma35_vsi_libs.git from mirror github..."
@@ -74,25 +74,22 @@ function clone_vsi_gits(){
     git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/drivers" src -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "src/.git/hooks/"
     echo -e "done"
 
-    cd $root_dir
-    cd ma35_vsi_libs/src
-    rm vpe common VC8000D VC8000E build VIP2D drivers -rf
-    echo "clone vsi libs from VSI gerrit..."
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "vpe/.git/hooks/"
     if [ "$include_sdk" == "y" ]; then
+        cd $root_dir
+        cd ma35_vsi_libs/sdk
+        rm  common VC8000D VC8000E build VIP2D -rf
         git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/common" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "common/.git/hooks/"
         git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/VC8000D" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VC8000D/.git/hooks/"
         git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/VC8000E" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VC8000E/.git/hooks/"
         git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/transcoding" build -b master && scp -p -P $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "build/.git/hooks/"
         git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/GAL/driver" VIP2D -b spsd/SuperNova && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VIP2D/.git/hooks/"
+        ln -s ../../ma35_linux_kernel/src/ drivers
     fi
-    echo "Link ffmpeg from ma35_ffmpeg to ma35_vsi_libs/src/ffmpeg"
     cd $root_dir
-    cd ma35_vsi_libs/src/
-    ln -s ../../ma35_ffmpeg/src/ ffmpeg
-
-    echo "Link driver from ma35_linux_kernel to ma35_vsi_libs/src/drivers"
-    ln -s ../../ma35_linux_kernel/src/ drivers
+    cd ma35_vsi_libs/src
+    rm  vpe -rf
+    echo "clone vsi libs from VSI gerrit..."
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "vpe/.git/hooks/"
 }
 
 function build(){
@@ -166,17 +163,54 @@ function help(){
     echo "$0 --amd_gits_mirror=:        y/n, whether enable the gits mirror.[$amd_gits_mirror] "
     echo "$0 --gerrit_user=:            set the gerrit account wich contains VSI gits.[$gerrit_user]"
     echo "$0 --github_user=:            set the github account wich contains AMD gits.[$github_user]"
+    echo "$0 --include_sdk=:            y/n: whether clone VSI SDK code.[$include_sdk]"
     echo "$0 --amd_vsi_lib_branch=:     set the AMD gits vsi_lib branch name.[$amd_vsi_lib_branch]"
     echo "$0 --amd_ffmpeg_branch=:      set the AMD gits ffmpeg branch name.[$amd_ffmpeg_branch]"
     echo "$0 --amd_drivers_branch=:     set the AMD gits drivers branch name.[$amd_drivers_branch]"
     echo "$0 --amd_ma35_branch=:        set the AMD gits ma35 branch name.[$amd_ma35_branch]"
     echo "$0 --amd_shelf_branch=:       set the AMD gits shelf branch name.[$amd_shelf_branch]"
-    echo "$0 --include_sdk=:            y/n: whether clone VSI SDK code.[$include_sdk]"
     echo "$0 new_project:               create one new rmpty project."
     echo "$0 clone_amd_gits:            clone AMD gits only."
     echo "$0 clone_vsi_gits:            clone VSI gits only"
     echo "$0 build:                     do full build"
+    echo "$0 gen_merge_codebase:        generate merge codebase"
     echo "$0 package:                   package all requied files"
+}
+
+function gen_merge_codebase()
+{
+    cd $root_dir;
+    rm merge -rf
+    mkdir merge && cd merge
+
+    if [[ "$amd_gits_mirror" == "y" ]]; then
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs" -b $amd_vsi_lib_branch
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_ffmpeg" -b $amd_ffmpeg_branch
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_linux_kernel" -b $amd_drivers_branch
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_shelf" -b $amd_shelf_branch
+    else
+        git clone git@github.com:$github_user/ma35_vsi_libs.git -b $amd_vsi_lib_branch
+        git clone git@github.com:$github_user/ma35_ffmpeg.git -b $amd_ffmpeg_branch
+        git clone git@github.com:$github_user/ma35_linux_kernel.git -b $amd_drivers_branch
+        git clone git@github.com:$github_user/ma35_shelf.git -b $amd_shelf_branch
+    fi
+
+    mkdir amd
+    mv ma35_vsi_libs/src/vpe amd/vpe
+    mv ma35_ffmpeg/src amd/ffmpeg
+    mv ma35_linux_kernel/src amd/drivers
+    rm ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel -rf
+
+    mkdir vsi && cd vsi
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/ffmpeg/ffmpeg" -b spsd/master
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/drivers" -b spsd/master
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe" -b spsd/master
+    cd ../
+
+    cp ma35_shelf/host_device_algo/libhost_device_algo.so vsi/vpe/prebuild/libs/x86_64_linux/
+    cp ma35_shelf/ma35_sn_int/lib*.so vsi/vpe/prebuild/libs/x86_64_linux/cmodel/
+    cp ma35_shelf/xav1sdk/libxav1sdk.so vsi/vpe/prebuild/libs/x86_64_linux/
+    rm ma35_shelf -rf
 }
 
 for (( i=1; i <=$#; i++ )); do
@@ -223,6 +257,8 @@ for (( i=1; i <=$#; i++ )); do
         build;;
     package)
         package;;
+    gen_merge_codebase)
+        gen_merge_codebase;;
     --help|help)
         help ;
         exit 1;;
