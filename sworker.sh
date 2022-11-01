@@ -6,6 +6,8 @@ github_user=Xilinx-Projects
 amd_vsi_lib_branch=develop
 amd_ffmpeg_branch=develop
 amd_drivers_branch=develop
+amd_osal_branch=develop
+amd_firmware_branch=develop
 amd_shelf_branch=develop
 amd_ma35_branch=develop
 amd_gits_mirror=y
@@ -26,19 +28,25 @@ function clone_amd_gits(){
     rm ma35* -rf
 
     if [[ "$amd_gits_mirror" == "y" ]]; then
-        echo "clone ma35_vsi_libs.git from mirror github..."
+        echo "clone ma35_vsi_libs from gerrit..."
         git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs" -b $amd_vsi_lib_branch
 
-        echo "clone ma35_ffmpeg.git from mirror github..."
+        echo "clone ma35_ffmpeg from gerrit..."
         git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_ffmpeg" -b $amd_ffmpeg_branch
 
-        echo "clone ma35_linux_kernel.git from mirror github..."
+        echo "clone ma35_linux_kernel from gerrit..."
         git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_linux_kernel" -b $amd_drivers_branch
 
-        echo "clone ma35.git from mirror github..."
+        echo "clone ma35 from gerrit..."
         git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35" -b $amd_ma35_branch
 
-        echo "clone shelf.git from mirror github..."
+        echo "clone osal from gerrit..."
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_osal" -b $amd_osal_branch
+
+        echo "clone ma35_zsp_firmware from gerrit..."
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_zsp_firmware" -b $amd_firmware_branch
+
+        echo "clone shelf from gerrit..."
         git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_shelf" -b $amd_shelf_branch
     else
         echo "clone ma35_vsi_libs.git from github..."
@@ -49,6 +57,12 @@ function clone_amd_gits(){
 
         echo "clone ma35_linux_kernel.git from github..."
         git clone git@github.com:$github_user/ma35_linux_kernel.git -b $amd_drivers_branch
+
+        echo "clone ma35_zsp_firmware.git from github..."
+        git clone git@github.com:$github_user/ma35_zsp_firmware.git -b $amd_firmware_branch
+
+        echo "clone ma35_osal.git from github..."
+        git clone git@github.com:$github_user/ma35_osal.git -b $amd_osal_branch
 
         echo "clone ma35.git from github..."
         git clone git@github.com:$github_user/ma35.git -b $amd_ma35_branch
@@ -99,7 +113,7 @@ function build(){
         mkdir build
     fi
     cd build
-    cmake ../ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_REPOS=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_ffmpeg=true
+    cmake ../ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_REPOS=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ffmpeg=true
     ninja ffmpeg_vsi sn_int
     echo -e "done"
 }
@@ -150,8 +164,9 @@ function package(){
 
     ## copy scripts
     cp ../ma35_vsi_libs/src/vpe/build/install.sh $outpath/
-    cp ../ma35_vsi_libs/src/vpe/tools/stest.sh $outpath/
-
+    cp ../ma35_vsi_libs/src/vpe/tools/*.sh $outpath/
+    cp ../ma35_vsi_libs/src/vpe/tools/snmonitor/snmonitor $release_path/
+    cp ../ma35_vsi_libs/src/vpe/tools/srm/srmtool $release_path/
     cd out
     remove_rpath
     tar -czf $output_pkg_name.tgz $output_pkg_name/
@@ -167,6 +182,8 @@ function help(){
     echo "$0 --amd_vsi_lib_branch=:     set the AMD gits vsi_lib branch name.[$amd_vsi_lib_branch]"
     echo "$0 --amd_ffmpeg_branch=:      set the AMD gits ffmpeg branch name.[$amd_ffmpeg_branch]"
     echo "$0 --amd_drivers_branch=:     set the AMD gits drivers branch name.[$amd_drivers_branch]"
+    echo "$0 --amd_osal_branch=:        set the AMD gits drivers branch name.[$amd_osal_branch]"
+    echo "$0 --amd_firmware_branch=:    set the AMD gits drivers branch name.[$amd_firmware_branch]"
     echo "$0 --amd_ma35_branch=:        set the AMD gits ma35 branch name.[$amd_ma35_branch]"
     echo "$0 --amd_shelf_branch=:       set the AMD gits shelf branch name.[$amd_shelf_branch]"
     echo "$0 new_project:               create one new rmpty project."
@@ -237,6 +254,12 @@ for (( i=1; i <=$#; i++ )); do
     --amd_drivers_branch=*)
         echo "amd_drivers_branch=$optarg"
         amd_drivers_branch=$optarg;;
+    --amd_osal_branch=*)
+        echo "amd_osal_branch=$optarg"
+        amd_osal_branch=$optarg;;
+    --amd_firmware_branch=*)
+        echo "amd_firmware_branch=$optarg"
+        amd_firmware_branch=$optarg;;                
     --amd_ma35_branch=*)
         echo "amd_ma35_branch=$optarg"
         amd_ma35_branch=$optarg;;
