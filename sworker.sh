@@ -157,16 +157,17 @@ function package(){
 
     ## copy drivers
     mv ../ma35_linux_kernel/src ../ma35_linux_kernel/drivers
-    mv ../ma35_linux_kernel/drivers/.git ../ma35_linux_kernel/vsi.git
+    cp ../ma35_shelf/firmware_platform/* ../ma35_linux_kernel/drivers/firmware/
+
+    mv ../ma35_linux_kernel/drivers/.git ../ma35_linux_kernel/drivers/vsi.git
     cd ../ma35_linux_kernel/ && tar -czf ../build/$outpath/drivers.tgz drivers && cd -
-    mv ../ma35_linux_kernel/vsi.git ../ma35_linux_kernel/drivers/.git
+    mv ../ma35_linux_kernel/drivers/vsi.git ../ma35_linux_kernel/drivers/.git
     mv ../ma35_linux_kernel/drivers ../ma35_linux_kernel/src
 
     ## copy scripts
     cp ../ma35_vsi_libs/src/vpe/build/install.sh $outpath/
     cp ../ma35_vsi_libs/src/vpe/tools/*.sh $outpath/
-    cp ../ma35_vsi_libs/src/vpe/tools/snmonitor/snmonitor $release_path/
-    cp ../ma35_vsi_libs/src/vpe/tools/srm/srmtool $release_path/
+
     cd out
     remove_rpath
     tar -czf $output_pkg_name.tgz $output_pkg_name/
