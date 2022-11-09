@@ -88,6 +88,12 @@ function clone_vsi_gits(){
     git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/drivers" src -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "src/.git/hooks/"
     echo -e "done"
 
+    echo "clone firmware from VSI gerrit..."
+    cd $root_dir
+    cd ma35_zsp_firmware/ && rm firmware -rf
+    git clone "ssh://cn1208@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/Firmware" firmware -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "firmware/.git/hooks/"
+    echo -e "done"
+
     if [ "$include_sdk" == "y" ]; then
         cd $root_dir
         cd ma35_vsi_libs/sdk
