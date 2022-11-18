@@ -125,8 +125,8 @@ function build(){
 
 function remove_rpath(){
     cd $root_dir/build/out/$output_pkg_name;
-    libs=(GAL OpenVX xabrsdk common VSC ArchModelSw NNArchPerf h2enc g2dec common.so cache)
-    for lib in libs; do
+    libs=(GAL OpenVX xabrsdk xav1sdk common VSC ArchModelSw NNArchPerf h2enc g2dec common.so cache)
+    for lib in ${libs[@]}; do
         patchelf --remove-needed lib$lib.so libvpi.so
     done
     cd -
@@ -141,29 +141,32 @@ function package(){
     cd build/
 
     rm $outpath -rf && mkdir -p $outpath
+
     ## copy libs
-    cp ../ma35_vsi_libs/src/vpe/prebuild/libs/x86_64_linux/* $outpath/ -rf
+    cp _deps/vsi_libs-build/sdk/xabr/libxabrsdk.so $outpath/
+    cp _deps/vsi_libs-build/src/vpe/prebuild/*.so $outpath/
+    cp _deps/vsi_libs-build/src/vpe/src/libvpi.so $outpath/
     cp _deps/ffmpeg-build/ffmpeg $outpath/
     cp _deps/ffmpeg-build/ffprobe $outpath/
-    cp _deps/vsi_libs-build/sdk/xabr/libxabrsdk.so $outpath/
-    cp _deps/vsi_libs-build/src/vpe/src/libvpi.so $outpath/
     cp _deps/sn_int_ext-build/lib/libsn_int.so $outpath/
     cp ../ma35_shelf/xav1sdk/libxav1sdk.so $outpath/
+
+    ## copy firmware
+    if [ ! -d "$outpath/firmware/" ]; then
+        mkdir $outpath/firmware/
+    fi
+    cp ../ma35_shelf/firmware_platform/fw_*.sre $outpath/firmware
+    cp ../ma35_vsi_libs/src/vpe/prebuild/firmware/*.bin $outpath/firmware
+
+    ## copy cmodel related
     if [ ! -d "$outpath/cmodel/" ]; then
         mkdir $outpath/cmodel/
     fi
-
-    ## copy cmodel related
-    cp ../ma35_shelf/ma35_sn_int/libxabr_sim.so $outpath/cmodel/
-    cp ../ma35_shelf/ma35_sn_int/libvc8000d_sim.so $outpath/cmodel/
-    cp ../ma35_shelf/ma35_sn_int/libxav1_sim.so $outpath/cmodel/
-    cp ../ma35_shelf/ma35_sn_int/libvc8000e_sim.so $outpath/cmodel/
+    cp ../ma35_shelf/ma35_sn_int/lib*_sim.so $outpath/cmodel/
     cp ../ma35_shelf/host_device_algo/libhost_device_algo.so $outpath/
 
     ## copy drivers
     mv ../ma35_linux_kernel/src ../ma35_linux_kernel/drivers
-    cp ../ma35_shelf/firmware_platform/* ../ma35_linux_kernel/drivers/firmware/
-
     mv ../ma35_linux_kernel/drivers/.git ../ma35_linux_kernel/drivers/vsi.git
     cd ../ma35_linux_kernel/ && tar -czf ../build/$outpath/drivers.tgz drivers && cd -
     mv ../ma35_linux_kernel/drivers/vsi.git ../ma35_linux_kernel/drivers/.git
@@ -265,7 +268,7 @@ for (( i=1; i <=$#; i++ )); do
         amd_osal_branch=$optarg;;
     --amd_firmware_branch=*)
         echo "amd_firmware_branch=$optarg"
-        amd_firmware_branch=$optarg;;                
+        amd_firmware_branch=$optarg;;
     --amd_ma35_branch=*)
         echo "amd_ma35_branch=$optarg"
         amd_ma35_branch=$optarg;;
@@ -279,8 +282,10 @@ for (( i=1; i <=$#; i++ )); do
         root_dir=$(realpath $(create_folder))
         echo "new project $root_dir had been created";;
     clone_amd_gits)
+        rm build -rf
         clone_amd_gits;;
     clone_vsi_gits)
+        rm build -rf
         clone_vsi_gits;;
     build)
         build;;
