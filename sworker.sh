@@ -2,18 +2,19 @@
 
 root_dir=`pwd`
 gerrit_user=cn1208
-github_user=Xilinx-Projects
-amd_vsi_lib_branch=develop
-amd_ffmpeg_branch=develop
-amd_drivers_branch=develop
-amd_osal_branch=develop
-amd_firmware_branch=develop
-amd_shelf_branch=develop
-amd_ma35_branch=develop
+github_user=GYZHANG2019
+ma35_vsi_libs_branch=develop
+ma35_ffmpeg_branch=develop
+ma35_linux_kernel_branch=develop
+ma35_osal_branch=develop
+ma35_zsp_firmware_branch=develop
+ma35_shelf_branch=develop
+ma35_branch=develop
 amd_gits_mirror=y
 include_sdk=y
 
-set -o pipefail
+repos=(ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel ma35 ma35_osal ma35_zsp_firmware ma35_shelf)
+
 function create_folder(){
     folder=fork_`date "+%m%d%H%M"`
     mkdir $folder &&
@@ -24,54 +25,124 @@ function create_folder(){
 
 function clone_amd_gits(){
     cd $root_dir;
+    rm ma35* build -rf
+    idx=1
+    for repo in ${repos[@]}; do
+        branch=$repo"_branch"
+        branch=`eval echo '$'"$branch"`
+        if [[ "$amd_gits_mirror" == "y" ]]; then
+            git="ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/$repo"
+        else
+            git="git@github.com:$github_user/$repo.git"
+        fi
+        echo -e "\n$idx. clone $git..."
+        git clone "$git" -b $branch
+        if (( $? != 0 )); then
+            echo "git clone $git failed"
+            exit 1
+        fi
+        idx=$((idx+1))
+    done
+    echo "clone_amd_gits done"
+}
 
-    rm ma35* -rf
+function sync_fork(){
+    cd $root_dir;
+    idx=1
+    for repo in ${repos[@]}; do
+        cd $repo
+        if (( $? != 0 )); then
+            echo "repo $repo is not exist"
+            exit 1
+        fi
+        str=$(git remote -v | grep "fetch")
+        str=${str##*:}
+        user=${str%%/*}
+        branch=$repo"_branch"
+        branch=`eval echo '$'"$branch"`
+        echo -e "\n$idx. sync AMD $repo..."
+        if [[ "$(git remote -v | grep "gerrit")" == "" ]]; then
+            gh repo sync -b $branch --force $user/$repo
+            if (( $? != 0 )); then
+                echo "gh repo sync failed"
+                exit 1
+            fi
+            echo "$user/$repo had been synced"
+        else
+            echo "$repo is not a fork, skip"
+        fi
+        idx=$((idx+1))
+        cd ..
+    done
+    echo "fetch_amd_gits done"
+}
 
-    if [[ "$amd_gits_mirror" == "y" ]]; then
-        echo "clone ma35_vsi_libs from gerrit..."
-        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs" -b $amd_vsi_lib_branch
+function fetch_amd_gits(){
+    cd $root_dir;
+    idx=1
+    for repo in ${repos[@]}; do
+        cd $repo
+        branch=$repo"_branch"
+        branch=`eval echo '$'"$branch"`
+        echo -e "\n$idx. updating AMD $repo..."
+        git config pull.rebase false
+        git reset --hard && git pull origin $branch
+        idx=$((idx+1))
+        cd ..
+    done
+    echo "fetch_amd_gits done"
+}
 
-        echo "clone ma35_ffmpeg from gerrit..."
-        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_ffmpeg" -b $amd_ffmpeg_branch
+function fetch_vsi_gits(){
+    cd $root_dir;
+    idx=1
 
-        echo "clone ma35_linux_kernel from gerrit..."
-        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_linux_kernel" -b $amd_drivers_branch
+    local mirrow_repos=(ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel ma35_osal)
+    for repo in ${mirrow_repos[@]}; do
+        cd $repo/src
+        if (( $? != 0 )); then
+            echo "folder $repo/src is not exist"
+            exit 1
+        fi
+        branch=$repo"_branch"
+        branch=`eval echo '$'"$branch"`
+        echo -e "\n$idx. updating VSI $repo..."
+        git config pull.rebase false
+        git reset --hard
+        git pull origin $branch
+        idx=$((idx+1))
+        cd -
+    done
 
-        echo "clone ma35 from gerrit..."
-        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35" -b $amd_ma35_branch
+    echo "$idx. updating VSI ma35_zsp_firmware..."
+    cd ../../ma35_zsp_firmware/firmware
+    git config pull.rebase false
+    git reset --hard
+    git pull origin $ma35_zsp_firmware_branch
+    cd -
+    echo "fetch_vsi_gits done"
+}
 
-        echo "clone osal from gerrit..."
-        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_osal" -b $amd_osal_branch
+function push_to_amd_gits(){
+    cd $root_dir;
+    idx=1
 
-        echo "clone ma35_zsp_firmware from gerrit..."
-        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_zsp_firmware" -b $amd_firmware_branch
-
-        echo "clone shelf from gerrit..."
-        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_shelf" -b $amd_shelf_branch
-    else
-        echo "clone ma35_vsi_libs.git from github..."
-        git clone git@github.com:$github_user/ma35_vsi_libs.git -b $amd_vsi_lib_branch
-
-        echo "clone ma35_ffmpeg.git from github..."
-        git clone git@github.com:$github_user/ma35_ffmpeg.git -b $amd_ffmpeg_branch
-
-        echo "clone ma35_linux_kernel.git from github..."
-        git clone git@github.com:$github_user/ma35_linux_kernel.git -b $amd_drivers_branch
-
-        echo "clone ma35_zsp_firmware.git from github..."
-        git clone git@github.com:$github_user/ma35_zsp_firmware.git -b $amd_firmware_branch
-
-        echo "clone ma35_osal.git from github..."
-        git clone git@github.com:$github_user/ma35_osal.git -b $amd_osal_branch
-
-        echo "clone ma35.git from github..."
-        git clone git@github.com:$github_user/ma35.git -b $amd_ma35_branch
-
-        echo "clone shelf.git from github..."
-        git clone git@github.com:$github_user/ma35_shelf.git -b $amd_shelf_branch
-    fi
-
-    echo -e "done"
+    for repo in ${repos[@]}; do
+        branch=$repo"_branch"
+        branch=`eval echo '$'"$branch"`
+        echo -e "\n$idx. pusing $repo..."
+        cd $repo
+        if [[ "$(git remote -v | grep "gerrit")" == "" ]]; then
+            git add .
+            git commit -m "integration $date"
+            git push origin $branch -f
+        else
+            echo "Can't push anything to mirrow"
+        fi
+        idx=$((idx+1))
+        cd -
+    done
+    echo "push_to_amd_gits done"
 }
 
 function clone_vsi_gits(){
@@ -79,20 +150,49 @@ function clone_vsi_gits(){
     echo "clone ffmpeg from VSI gerrit..."
     cd $root_dir;
     cd ma35_ffmpeg/ && rm src -rf
+    if (( $? != 0 )); then
+        echo "ma35_ffmpeg is not exist"
+        exit 1
+    fi
     git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/ffmpeg/ffmpeg" src -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "src/.git/hooks/"
-    echo -e "done"
 
     echo "clone drivers from VSI gerrit..."
     cd $root_dir
     cd ma35_linux_kernel/ && rm src -rf
+    if (( $? != 0 )); then
+        echo "ma35_linux_kernel is not exist"
+        exit 1
+    fi
     git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/drivers" src -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "src/.git/hooks/"
-    echo -e "done"
+
+    echo "clone osal from VSI gerrit..."
+    cd $root_dir
+    cd ma35_osal/ && rm src -rf
+    if (( $? != 0 )); then
+        echo "ma35_osal is not exist"
+        exit 1
+    fi
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_osal" src -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "src/.git/hooks/"
 
     echo "clone firmware from VSI gerrit..."
     cd $root_dir
     cd ma35_zsp_firmware/ && rm firmware -rf
+    if (( $? != 0 )); then
+        echo "ma35_zsp_firmware is not exist"
+        exit 1
+    fi
     git clone "ssh://cn1208@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/Firmware" firmware -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "firmware/.git/hooks/"
-    echo -e "done"
+
+    echo "clone vpe from VSI gerrit..."
+    cd $root_dir
+    cd ma35_vsi_libs/src
+    if (( $? != 0 )); then
+        echo "ma35_vsi_libs is not exist"
+        exit 1
+    fi
+    rm  vpe -rf
+    echo "clone vsi libs from VSI gerrit..."
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe" vpe -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "vpe/.git/hooks/"
 
     if [ "$include_sdk" == "y" ]; then
         cd $root_dir
@@ -104,11 +204,30 @@ function clone_vsi_gits(){
         git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/transcoding" build -b master && scp -p -P $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "build/.git/hooks/"
         git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/GAL/driver" VIP2D -b spsd/SuperNova && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VIP2D/.git/hooks/"
     fi
-    cd $root_dir
-    cd ma35_vsi_libs/src
-    rm  vpe -rf
-    echo "clone vsi libs from VSI gerrit..."
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "vpe/.git/hooks/"
+    echo "clone_vsi_gits done"
+}
+
+function gen_vsi_codebase(){
+
+    rm vpe2 -rf
+    mkdir vpe2 && cd vpe2
+
+    gits=(ffmpeg/ffmpeg gitlab/Transcoder/drivers github/Xilinx-Projects/ma35_osal gitlab/Transcoder/Firmware VSI/SDK/vpe gitlab/Transcoder/common gitlab/Transcoder/VC8000D gitlab/Transcoder/VC8000E)
+
+    for git in ${gits[@]}; do
+        echo "clone $git..."
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/$git" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "${git##*/}/.git/hooks/"
+    done
+
+    mv ma35_osal osal
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/GAL/driver" VIP2D -b spsd/SuperNova	&& scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VIP2D/.git/hooks/"
+
+    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/transcoding" build -b master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "build/.git/hooks/"
+
+    cd build
+    ./build_all.sh
+
+    echo "gen_vsi_codebase done"
 }
 
 function build(){
@@ -118,19 +237,19 @@ function build(){
         mkdir build
     fi
     cd build
-    cmake ../ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_REPOS=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ffmpeg=true -DMA35_BUILD_KERNEL_OSAL=true -DREPO_BUILD_TESTS_vsi_libs=true
-    ninja ffmpeg_vsi
-    echo -e "done"
+    cmake ../ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_REPOS=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true  -DMA35_BUILD_KERNEL_OSAL=false -DREPO_BUILD_TESTS_vsi_libs=true
+    ninja ffmpeg_vsi sn_int srmtool zsp_firmware
 }
 
 function remove_rpath(){
     cd $root_dir/build/out/$output_pkg_name;
-    libs=(GAL OpenVX xabrsdk xav1sdk common VSC ArchModelSw NNArchPerf h2enc g2dec common.so cache)
+    libs=(GAL OpenVX xabrsdk common VSC ArchModelSw NNArchPerf h2enc g2dec cache)
     for lib in ${libs[@]}; do
+        patchelf --remove-needed _deps/vsi_libs-build/src/vpe/prebuild/lib$lib.so libvpi.so
         patchelf --remove-needed lib$lib.so libvpi.so
+        patchelf --add-needed lib$lib.so ./ffmpeg
     done
     cd -
-    echo "rpath in libvpi.so had been removed"
 }
 
 function package(){
@@ -141,28 +260,30 @@ function package(){
     cd build/
 
     rm $outpath -rf && mkdir -p $outpath
+    mkdir $outpath/cmodel/
+    mkdir $outpath/firmware/
+    mkdir $outpath/JSON/asic/ -p
+    mkdir $outpath/JSON/fpga/ -p
 
     ## copy libs
-    cp _deps/vsi_libs-build/sdk/xabr/libxabrsdk.so $outpath/
-    cp _deps/vsi_libs-build/src/vpe/prebuild/*.so $outpath/
-    cp _deps/vsi_libs-build/src/vpe/src/libvpi.so $outpath/
+    cp ../ma35_vsi_libs/src/vpe/prebuild/libs/x86_64_linux/* $outpath/ -rf
     cp _deps/ffmpeg-build/ffmpeg $outpath/
     cp _deps/ffmpeg-build/ffprobe $outpath/
+    cp _deps/vsi_libs-build/src/vpe/tools/srmtool $outpath/
+    cp _deps/vsi_libs-build/sdk/xabr/libxabrsdk.so $outpath/
+    cp _deps/vsi_libs-build/src/vpe/src/libvpi.so $outpath/
     cp _deps/sn_int_ext-build/lib/libsn_int.so $outpath/
     cp ../ma35_shelf/xav1sdk/libxav1sdk.so $outpath/
 
     ## copy firmware
-    if [ ! -d "$outpath/firmware/" ]; then
-        mkdir $outpath/firmware/
-    fi
-    cp ../ma35_shelf/firmware_platform/fw_*.sre $outpath/firmware
-    cp ../ma35_vsi_libs/src/vpe/prebuild/firmware/*.bin $outpath/firmware
+    cp ../ma35_shelf/firmware_platform/* $outpath/firmware/
+    cp _deps/zsp_firmware-build/zsp_firmware_packed.bin $outpath/firmware/supernova_zsp_fw_evb.bin -rf
 
     ## copy cmodel related
-    if [ ! -d "$outpath/cmodel/" ]; then
-        mkdir $outpath/cmodel/
-    fi
-    cp ../ma35_shelf/ma35_sn_int/lib*_sim.so $outpath/cmodel/
+    cp ../ma35_shelf/ma35_sn_int/libxabr_sim.so $outpath/cmodel/
+    cp ../ma35_shelf/ma35_sn_int/libvc8000d_sim.so $outpath/cmodel/
+    cp ../ma35_shelf/ma35_sn_int/libxav1_sim.so $outpath/cmodel/
+    cp ../ma35_shelf/ma35_sn_int/libvc8000e_sim.so $outpath/cmodel/
     cp ../ma35_shelf/host_device_algo/libhost_device_algo.so $outpath/
 
     ## copy drivers
@@ -176,6 +297,20 @@ function package(){
     cp ../ma35_vsi_libs/src/vpe/build/install.sh $outpath/
     cp ../ma35_vsi_libs/src/vpe/tools/*.sh $outpath/
 
+    # copy model files
+    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/yolo_v2.nb" -P $outpath/JSON/asic/
+    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/mobilenet_v1.nb" -P $outpath/JSON/asic/
+    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/bodypix.nb" -P $outpath/JSON/asic/
+    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/resnet_50.nb" -P $outpath/JSON/asic/
+    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/cae_cc.nb" -P $outpath/JSON/asic/
+    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/cae_cxc.nb" -P $outpath/JSON/asic/
+    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/yolo_v2.nb" -P $outpath/JSON/fpga
+    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/mobilenet_v1.nb" -P $outpath/JSON/fpga
+    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/bodypix.nb" -P $outpath/JSON/fpga
+    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/resnet_50.nb" -P $outpath/JSON/fpga
+    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/cae_cc.nb" -P $outpath/JSON/fpga
+    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/cae_cxc.nb" -P $outpath/JSON/fpga
+
     cd out
     remove_rpath
     tar -czf $output_pkg_name.tgz $output_pkg_name/
@@ -184,23 +319,28 @@ function package(){
 
 function help(){
     echo "this script will pull both AMD gits and/or VSI gits, and do compiling, finally generate test package"
-    echo "$0 --amd_gits_mirror=:        y/n, whether enable the gits mirror.[$amd_gits_mirror] "
-    echo "$0 --gerrit_user=:            set the gerrit account wich contains VSI gits.[$gerrit_user]"
-    echo "$0 --github_user=:            set the github account wich contains AMD gits.[$github_user]"
-    echo "$0 --include_sdk=:            y/n: whether clone VSI SDK code.[$include_sdk]"
-    echo "$0 --amd_vsi_lib_branch=:     set the AMD gits vsi_lib branch name.[$amd_vsi_lib_branch]"
-    echo "$0 --amd_ffmpeg_branch=:      set the AMD gits ffmpeg branch name.[$amd_ffmpeg_branch]"
-    echo "$0 --amd_drivers_branch=:     set the AMD gits drivers branch name.[$amd_drivers_branch]"
-    echo "$0 --amd_osal_branch=:        set the AMD gits drivers branch name.[$amd_osal_branch]"
-    echo "$0 --amd_firmware_branch=:    set the AMD gits drivers branch name.[$amd_firmware_branch]"
-    echo "$0 --amd_ma35_branch=:        set the AMD gits ma35 branch name.[$amd_ma35_branch]"
-    echo "$0 --amd_shelf_branch=:       set the AMD gits shelf branch name.[$amd_shelf_branch]"
-    echo "$0 new_project:               create one new rmpty project."
-    echo "$0 clone_amd_gits:            clone AMD gits only."
-    echo "$0 clone_vsi_gits:            clone VSI gits only"
-    echo "$0 build:                     do full build"
-    echo "$0 gen_merge_codebase:        generate merge codebase"
-    echo "$0 package:                   package all requied files"
+    echo "$0 --amd_gits_mirror=:            y/n, whether enable the gits mirror.[$amd_gits_mirror] "
+    echo "$0 --gerrit_user=:                set the gerrit account wich contains VSI gits.[$gerrit_user]"
+    echo "$0 --github_user=:                set the github account wich contains AMD gits.[$github_user]"
+    echo "$0 --include_sdk=:                y/n: whether clone VSI SDK code.[$include_sdk]"
+    echo "$0 --ma35_vsi_libs_branch=:       set the AMD gits vsi_lib branch name.[$ma35_vsi_libs_branch]"
+    echo "$0 --ma35_ffmpeg_branch=:         set the AMD gits ffmpeg branch name.[$ma35_ffmpeg_branch]"
+    echo "$0 --ma35_linux_kernel_branch=:   set the AMD gits drivers branch name.[$ma35_linux_kernel_branch]"
+    echo "$0 --ma35_osal_branch=:           set the AMD gits drivers branch name.[$ma35_osal_branch]"
+    echo "$0 --ma35_zsp_firmware_branch=:   set the AMD gits drivers branch name.[$ma35_zsp_firmware_branch]"
+    echo "$0 --ma35_branch=:                set the AMD gits ma35 branch name.[$ma35_branch]"
+    echo "$0 --ma35_shelf_branch=:          set the AMD gits shelf branch name.[$ma35_shelf_branch]"
+    echo "$0 new_project:                   create one new rmpty project."
+    echo "$0 sync_fork:                     sync forked gits to owner."
+    echo "$0 clone_amd_gits:                remove orignal AMD git, clone a new AMD gits."
+    echo "$0 clone_vsi_gits:                remove orignal VSI git, clone a new VSI gits."
+    echo "$0 fetch_amd_gits:                reset all local changes, and fetch AMD fork"
+    echo "$0 fetch_vsi_gits:                fetch all changes in VSI gits, and fetch VSI gits"
+    echo "$0 push_to_amd_gits:              push to AMD gits"
+    echo "$0 build:                         do full build"
+    echo "$0 gen_merge_codebase:            generate merge codebase"
+    echo "$0 gen_vsi_codebase:              generate VSI codebase"
+    echo "$0 package:                       package all requied files"
 }
 
 function gen_merge_codebase()
@@ -210,15 +350,15 @@ function gen_merge_codebase()
     mkdir merge && cd merge
 
     if [[ "$amd_gits_mirror" == "y" ]]; then
-        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs" -b $amd_vsi_lib_branch
-        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_ffmpeg" -b $amd_ffmpeg_branch
-        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_linux_kernel" -b $amd_drivers_branch
-        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_shelf" -b $amd_shelf_branch
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs" -b $ma35_vsi_libs_branch
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_ffmpeg" -b $ma35_ffmpeg_branch
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_linux_kernel" -b $ma35_linux_kernel_branch
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_shelf" -b $ma35_shelf_branch
     else
-        git clone git@github.com:$github_user/ma35_vsi_libs.git -b $amd_vsi_lib_branch
-        git clone git@github.com:$github_user/ma35_ffmpeg.git -b $amd_ffmpeg_branch
-        git clone git@github.com:$github_user/ma35_linux_kernel.git -b $amd_drivers_branch
-        git clone git@github.com:$github_user/ma35_shelf.git -b $amd_shelf_branch
+        git clone git@github.com:$github_user/ma35_vsi_libs.git -b $ma35_vsi_libs_branch
+        git clone git@github.com:$github_user/ma35_ffmpeg.git -b $ma35_ffmpeg_branch
+        git clone git@github.com:$github_user/ma35_linux_kernel.git -b $ma35_linux_kernel_branch
+        git clone git@github.com:$github_user/ma35_shelf.git -b $ma35_shelf_branch
     fi
 
     mkdir amd
@@ -254,52 +394,60 @@ for (( i=1; i <=$#; i++ )); do
     --github_user=*)
         echo "github_user=$optarg"
         github_user=$optarg;;
-    --amd_vsi_lib_branch=*)
-        echo "amd_vsi_lib_branch=$optarg"
-        amd_vsi_lib_branch=$optarg;;
-    --amd_ffmpeg_branch=*)
-        echo "amd_ffmpeg_branch=$optarg"
-        amd_ffmpeg_branch=$optarg;;
-    --amd_drivers_branch=*)
-        echo "amd_drivers_branch=$optarg"
-        amd_drivers_branch=$optarg;;
-    --amd_osal_branch=*)
-        echo "amd_osal_branch=$optarg"
-        amd_osal_branch=$optarg;;
-    --amd_firmware_branch=*)
-        echo "amd_firmware_branch=$optarg"
-        amd_firmware_branch=$optarg;;
-    --amd_ma35_branch=*)
-        echo "amd_ma35_branch=$optarg"
-        amd_ma35_branch=$optarg;;
-    --amd_shelf_branch=*)
-        echo "amd_shelf_branch=$optarg"
-        amd_shelf_branch=$optarg;;
+    --ma35_vsi_libs_branch=*)
+        echo "ma35_vsi_libs_branch=$optarg"
+        ma35_vsi_libs_branch=$optarg;;
+    --ma35_ffmpeg_branch=*)
+        echo "ma35_ffmpeg_branch=$optarg"
+        ma35_ffmpeg_branch=$optarg;;
+    --ma35_linux_kernel_branch=*)
+        echo "ma35_linux_kernel_branch=$optarg"
+        ma35_linux_kernel_branch=$optarg;;
+    --ma35_osal_branch=*)
+        echo "ma35_osal_branch=$optarg"
+        ma35_osal_branch=$optarg;;
+    --ma35_zsp_firmware_branch=*)
+        echo "ma35_zsp_firmware_branch=$optarg"
+        ma35_zsp_firmware_branch=$optarg;;
+    --ma35_branch=*)
+        echo "ma35_branch=$optarg"
+        ma35_branch=$optarg;;
+    --ma35_shelf_branch=*)
+        echo "ma35_shelf_branch=$optarg"
+        ma35_shelf_branch=$optarg;;
     --include_sdk=*)
         echo "include_sdk=$optarg"
         include_sdk=$optarg;;
     new_project)
         root_dir=$(realpath $(create_folder))
         echo "new project $root_dir had been created";;
+    sync_fork)
+        sync_fork;;
     clone_amd_gits)
-        rm build -rf
         clone_amd_gits;;
     clone_vsi_gits)
-        rm build -rf
         clone_vsi_gits;;
+    fetch_amd_gits)
+        fetch_amd_gits;;
+    fetch_vsi_gits)
+        fetch_vsi_gits;;
+    push_to_amd_gits)
+        push_to_amd_gits;;
     build)
         build;;
     package)
         package;;
     gen_merge_codebase)
         gen_merge_codebase;;
+    gen_vsi_codebase)
+        gen_vsi_codebase;;
     --help|help)
         help ;
-        exit 1;;
+        exit 0;;
     *)
         echo "invalid input $optarg";
         help;
         exit 1;
         ;;
-	esac
+    esac
 done
