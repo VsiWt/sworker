@@ -238,7 +238,9 @@ function build(){
     fi
     cd build
     cmake ../ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_REPOS=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true  -DMA35_BUILD_KERNEL_OSAL=false -DREPO_BUILD_TESTS_vsi_libs=true
-    ninja ffmpeg_vsi sn_int srmtool zsp_firmware
+    ninja ffmpeg_vsi sn_int 
+    # ninja zsp_firmware
+    ninja srmtool
 }
 
 function remove_rpath(){
@@ -277,7 +279,8 @@ function package(){
 
     ## copy firmware
     cp ../ma35_shelf/firmware_platform/* $outpath/firmware/
-    cp _deps/zsp_firmware-build/zsp_firmware_packed.bin $outpath/firmware/supernova_zsp_fw_evb.bin -rf
+    # cp _deps/zsp_firmware-build/zsp_firmware_packed.bin $outpath/firmware/supernova_zsp_fw_evb.bin -rf
+    cp ../ma35_vsi_libs/src/vpe/prebuild/firmware/supernova_zsp_fw_evb.bin $outpath/firmware/supernova_zsp_fw_evb.bin -rf
 
     ## copy cmodel related
     cp ../ma35_shelf/ma35_sn_int/libxabr_sim.so $outpath/cmodel/
