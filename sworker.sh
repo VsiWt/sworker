@@ -147,64 +147,72 @@ function push_to_amd_gits(){
 
 function clone_vsi_gits(){
 
-    echo "clone ffmpeg from VSI gerrit..."
-    cd $root_dir;
-    cd ma35_ffmpeg/ && rm src -rf
-    if (( $? != 0 )); then
-        echo "ma35_ffmpeg is not exist"
-        exit 1
+    gits=($@)
+    if [[ "$gits" == "" ]]; then
+        gits=(ffmpeg vpe osal build common VC8000D VC8000E VIP2D drivers firmware)
     fi
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/ffmpeg/ffmpeg" src -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "src/.git/hooks/"
 
-    echo "clone drivers from VSI gerrit..."
-    cd $root_dir
-    cd ma35_linux_kernel/ && rm src -rf
-    if (( $? != 0 )); then
-        echo "ma35_linux_kernel is not exist"
-        exit 1
-    fi
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/drivers" src -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "src/.git/hooks/"
+    echo "Will clone VSI gits: ${gits[@]}"
 
-    echo "clone osal from VSI gerrit..."
-    cd $root_dir
-    cd ma35_osal/ && rm src -rf
-    if (( $? != 0 )); then
-        echo "ma35_osal is not exist"
-        exit 1
+    if [[ "${gits[@]}" =~ "ffmpeg" ]];then
+        echo "clone ffmpeg from VSI gerrit..."
+        cd $root_dir/ma35_ffmpeg/ && rm src -rf
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/ffmpeg/ffmpeg" src -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "src/.git/hooks/"
     fi
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_osal" src -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "src/.git/hooks/"
 
-    echo "clone firmware from VSI gerrit..."
-    cd $root_dir
-    cd ma35_zsp_firmware/ && rm firmware -rf
-    if (( $? != 0 )); then
-        echo "ma35_zsp_firmware is not exist"
-        exit 1
+    if [[ "${gits[@]}" =~ "drivers" ]];then
+        echo "clone drivers from VSI gerrit..."
+        cd $root_dir/ma35_linux_kernel/ && rm src -rf
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/drivers" src -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "src/.git/hooks/"
     fi
-    git clone "ssh://cn1208@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/Firmware" firmware -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "firmware/.git/hooks/"
 
-    echo "clone vpe from VSI gerrit..."
-    cd $root_dir
-    cd ma35_vsi_libs/src
-    if (( $? != 0 )); then
-        echo "ma35_vsi_libs is not exist"
-        exit 1
+    if [[ "${gits[@]}" =~ "osal" ]];then
+        echo "clone osal from VSI gerrit..."
+        cd $root_dir/ma35_osal/ && rm src -rf
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_osal" src -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "src/.git/hooks/"
     fi
-    rm  vpe -rf
-    echo "clone vsi libs from VSI gerrit..."
-    git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe" vpe -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "vpe/.git/hooks/"
+
+    if [[ "${gits[@]}" =~ "firmware" ]];then
+        echo "clone firmware from VSI gerrit..."
+        cd $root_dir/ma35_zsp_firmware/ && rm firmware -rf
+        git clone "ssh://cn1208@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/Firmware" firmware -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "firmware/.git/hooks/"
+    fi
+
+    if [[ "${gits[@]}" =~ "vpe" ]];then
+        echo "clone vpe from VSI gerrit..."
+        cd $root_dir/ma35_vsi_libs/src && rm vpe -rf
+        echo "clone vsi libs from VSI gerrit..."
+        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe" vpe -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "vpe/.git/hooks/"
+    fi
 
     if [ "$include_sdk" == "y" ]; then
-        cd $root_dir
-        cd ma35_vsi_libs/sdk
-        rm  common VC8000D VC8000E build VIP2D -rf
-        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/common" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "common/.git/hooks/"
-        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/VC8000D" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VC8000D/.git/hooks/"
-        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/VC8000E" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VC8000E/.git/hooks/"
-        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/transcoding" build -b master && scp -p -P $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "build/.git/hooks/"
-        git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/GAL/driver" VIP2D -b spsd/SuperNova && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VIP2D/.git/hooks/"
+        cd $root_dir/ma35_vsi_libs/sdk
+        if [[  "${gits[@]}" =~ "common" ]];then
+            rm common -rf
+            git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/common" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "common/.git/hooks/"
+        fi
+
+        if [[ "${gits[@]}" =~ "VC8000D" ]];then
+            rm VC8000D -rf
+            git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/VC8000D" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VC8000D/.git/hooks/"
+        fi
+
+        if [[ "${gits[@]}" =~ "VC8000E" ]];then
+            rm VC8000E -rf
+            git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/VC8000E" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VC8000E/.git/hooks/"
+        fi
+
+        if [[ "${gits[@]}" =~ "build" ]];then
+            rm build -rf
+            git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/transcoding" build -b master && scp -p -P $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "build/.git/hooks/"
+        fi
+
+        if [[ "${gits[@]}" =~ "VIP2D" ]];then
+            rm VIP2D -rf
+            git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/GAL/driver" VIP2D -b spsd/SuperNova && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "VIP2D/.git/hooks/"
+        fi
     fi
-    echo "clone_vsi_gits done"
+    echo "clone_vsi_gits ${gits} done"
 }
 
 function gen_vsi_codebase(){
@@ -239,7 +247,7 @@ function build(){
     cd build
     cmake ../ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_REPOS=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true  -DMA35_BUILD_KERNEL_OSAL=false -DREPO_BUILD_TESTS_vsi_libs=true
     ninja ffmpeg_vsi sn_int 
-    # ninja zsp_firmware
+    ninja zsp_firmware
     ninja srmtool
 }
 
@@ -279,8 +287,8 @@ function package(){
 
     ## copy firmware
     cp ../ma35_shelf/firmware_platform/* $outpath/firmware/
-    # cp _deps/zsp_firmware-build/zsp_firmware_packed.bin $outpath/firmware/supernova_zsp_fw_evb.bin -rf
-    cp ../ma35_vsi_libs/src/vpe/prebuild/firmware/supernova_zsp_fw_evb.bin $outpath/firmware/supernova_zsp_fw_evb.bin -rf
+    cp _deps/zsp_firmware-build/zsp_firmware_packed.bin $outpath/firmware/supernova_zsp_fw_evb.bin -rf
+    #cp ../ma35_vsi_libs/src/vpe/prebuild/firmware/supernova_zsp_fw_evb.bin $outpath/firmware/supernova_zsp_fw_evb.bin -rf
 
     ## copy cmodel related
     cp ../ma35_shelf/ma35_sn_int/libxabr_sim.so $outpath/cmodel/
@@ -336,7 +344,7 @@ function help(){
     echo "$0 new_project:                   create one new rmpty project."
     echo "$0 sync_fork:                     sync forked gits to owner."
     echo "$0 clone_amd_gits:                remove orignal AMD git, clone a new AMD gits."
-    echo "$0 clone_vsi_gits:                remove orignal VSI git, clone a new VSI gits."
+    echo "$0 clone_vsi_gits [git][git]...:  remove orignal VSI git, clone a new VSI gits. gits can be or more of [ffmpeg vpe osal build common VC8000D VC8000E VIP2D drivers firmware]"
     echo "$0 fetch_amd_gits:                reset all local changes, and fetch AMD fork"
     echo "$0 fetch_vsi_gits:                fetch all changes in VSI gits, and fetch VSI gits"
     echo "$0 push_to_amd_gits:              push to AMD gits"
@@ -425,17 +433,17 @@ for (( i=1; i <=$#; i++ )); do
         root_dir=$(realpath $(create_folder))
         echo "new project $root_dir had been created";;
     sync_fork)
-        sync_fork;;
+        sync_fork $next_value;;
     clone_amd_gits)
-        clone_amd_gits;;
+        clone_amd_gits $next_value;;
     clone_vsi_gits)
-        clone_vsi_gits;;
+        clone_vsi_gits $next_value;;
     fetch_amd_gits)
-        fetch_amd_gits;;
+        fetch_amd_gits $next_value;;
     fetch_vsi_gits)
-        fetch_vsi_gits;;
+        fetch_vsi_gits $next_value;;
     push_to_amd_gits)
-        push_to_amd_gits;;
+        push_to_amd_gits $next_value;;
     build)
         build;;
     package)
