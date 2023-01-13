@@ -258,6 +258,7 @@ function remove_rpath(){
         patchelf --remove-needed _deps/vsi_libs-build/src/vpe/prebuild/lib$lib.so libvpi.so
         patchelf --remove-needed lib$lib.so libvpi.so
         patchelf --add-needed lib$lib.so ./ffmpeg
+        patchelf --add-needed lib$lib.so ./ffprobe
     done
     cd -
 }
