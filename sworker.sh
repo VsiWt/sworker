@@ -35,7 +35,7 @@ function clone_amd_gits(){
         else
             git="git@github.com:$github_user/$repo.git"
         fi
-        echo -e "\n$idx. clone $git..."
+        echo -e "\n$idx. clone $git...$branch"
         git clone "$git" -b $branch
         if (( $? != 0 )); then
             echo "git clone $git failed"
