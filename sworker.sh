@@ -285,11 +285,13 @@ function package(){
     cp _deps/vsi_libs-build/src/vpe/src/libvpi.so $outpath/
     cp _deps/sn_int_ext-build/lib/libsn_int.so $outpath/
     cp ../ma35_shelf/xav1sdk/libxav1sdk.so $outpath/
-
+    cp ../ma35_shelf/xma/libxma.so $outpath/
+    cp ../ma35_shelf/xrm/libxrm.so.1 $outpath/libxrm.so
+    cp ../ma35_shelf/roi_scale/libroi_scale.so $outpath
+    
     ## copy firmware
     cp ../ma35_shelf/firmware_platform/* $outpath/firmware/
-    cp _deps/zsp_firmware-build/zsp_firmware_packed.bin $outpath/firmware/supernova_zsp_fw_evb.bin -rf
-    #cp ../ma35_vsi_libs/src/vpe/prebuild/firmware/supernova_zsp_fw_evb.bin $outpath/firmware/supernova_zsp_fw_evb.bin -rf
+    cp _deps/zsp_firmware-build/zsp_firmware_packed_pcie.bin $outpath/firmware/supernova_zsp_fw_evb.bin -rf
 
     ## copy cmodel related
     cp ../ma35_shelf/ma35_sn_int/libxabr_sim.so $outpath/cmodel/
