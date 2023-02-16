@@ -245,9 +245,9 @@ function build(){
         mkdir build
     fi
     cd build
-    cmake ../ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_REPOS=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true  -DMA35_BUILD_KERNEL_OSAL=false -DREPO_BUILD_TESTS_vsi_libs=true
+    cmake ../ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_REPOS=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true  -DMA35_BUILD_KERNEL_OSAL=true -DREPO_BUILD_TESTS_vsi_libs=true
     ninja ffmpeg_vsi sn_int 
-    ninja zsp_firmware
+    ninja kernel_module zsp_firmware
     ninja srmtool
 }
 
@@ -265,11 +265,19 @@ function remove_rpath(){
 }
 
 function package(){
+    build_path=$1
     cd $root_dir;
     version=$(grep -o '".*"' ma35_vsi_libs/src/vpe/inc/version.h | sed 's/"//g')
     output_pkg_name=cmake_vpe_package_x86_64_linux_$version
     outpath=out/$output_pkg_name
-    cd build/
+    if [[ "$build_path" == "" ]]; then
+        build_path=build
+    elif [[ ! -d $build_path ]]; then
+        echo "path $build_path is not available"
+        exit 1
+    fi
+    echo "Generating MA35 software installation package..."
+    cd $build_path
 
     rm $outpath -rf && mkdir -p $outpath
     mkdir $outpath/cmodel/
@@ -302,29 +310,29 @@ function package(){
     cp ../ma35_shelf/host_device_algo/libhost_device_algo.so $outpath/
 
     ## copy drivers
-    mv ../ma35_linux_kernel/src ../ma35_linux_kernel/drivers
-    mv ../ma35_linux_kernel/drivers/.git ../ma35_linux_kernel/drivers/vsi.git
+    mv ../ma35_linux_kernel/src ../ma35_linux_kernel/drivers 2>/dev/null
+    mv ../ma35_linux_kernel/drivers/.git ../ma35_linux_kernel/drivers/vsi.git 2>/dev/null
     cd ../ma35_linux_kernel/ && tar -czf ../build/$outpath/drivers.tgz drivers && cd -
-    mv ../ma35_linux_kernel/drivers/vsi.git ../ma35_linux_kernel/drivers/.git
-    mv ../ma35_linux_kernel/drivers ../ma35_linux_kernel/src
+    mv ../ma35_linux_kernel/drivers/vsi.git ../ma35_linux_kernel/drivers/.git 2>/dev/null
+    mv ../ma35_linux_kernel/drivers ../ma35_linux_kernel/src 2>/dev/null
 
     ## copy scripts
     cp ../ma35_vsi_libs/src/vpe/build/install.sh $outpath/
     cp ../ma35_vsi_libs/src/vpe/tools/*.sh $outpath/
 
     # copy model files
-    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/yolo_v2.nb" -P $outpath/JSON/asic/
-    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/mobilenet_v1.nb" -P $outpath/JSON/asic/
-    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/bodypix.nb" -P $outpath/JSON/asic/
-    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/resnet_50.nb" -P $outpath/JSON/asic/
-    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/cae_cc.nb" -P $outpath/JSON/asic/
-    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/cae_cxc.nb" -P $outpath/JSON/asic/
-    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/yolo_v2.nb" -P $outpath/JSON/fpga
-    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/mobilenet_v1.nb" -P $outpath/JSON/fpga
-    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/bodypix.nb" -P $outpath/JSON/fpga
-    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/resnet_50.nb" -P $outpath/JSON/fpga
-    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/cae_cc.nb" -P $outpath/JSON/fpga
-    wget "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/cae_cxc.nb" -P $outpath/JSON/fpga
+    wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/yolo_v2.nb" -P $outpath/JSON/asic/
+    wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/mobilenet_v1.nb" -P $outpath/JSON/asic/
+    wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/bodypix.nb" -P $outpath/JSON/asic/
+    wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/resnet_50.nb" -P $outpath/JSON/asic/
+    wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/cae_cc.nb" -P $outpath/JSON/asic/
+    wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/cae_cxc.nb" -P $outpath/JSON/asic/
+    wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/yolo_v2.nb" -P $outpath/JSON/fpga
+    wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/mobilenet_v1.nb" -P $outpath/JSON/fpga
+    wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/bodypix.nb" -P $outpath/JSON/fpga
+    wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/resnet_50.nb" -P $outpath/JSON/fpga
+    wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/cae_cc.nb" -P $outpath/JSON/fpga
+    wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/cae_cxc.nb" -P $outpath/JSON/fpga
 
     cd out
     remove_rpath
@@ -355,7 +363,7 @@ function help(){
     echo "$0 build:                         do full build"
     echo "$0 gen_merge_codebase:            generate merge codebase"
     echo "$0 gen_vsi_codebase:              generate VSI codebase"
-    echo "$0 package:                       package all requied files"
+    echo "$0 package <build folder>:        package all requied files"
 }
 
 function gen_merge_codebase()
@@ -451,7 +459,7 @@ for (( i=1; i <=$#; i++ )); do
     build)
         build;;
     package)
-        package;;
+        package $next_value;;
     gen_merge_codebase)
         gen_merge_codebase;;
     gen_vsi_codebase)
