@@ -19,7 +19,7 @@ function create_folder(){
     folder=fork_`date "+%m%d%H%M"`
     mkdir $folder &&
     cd $folder &&
-    ln -s ../$0 . &&
+    ln -s $root/$0 . &&
     echo $folder
 }
 
@@ -115,7 +115,7 @@ function fetch_vsi_gits(){
     done
 
     echo "$idx. updating VSI ma35_zsp_firmware..."
-    cd ../../ma35_zsp_firmware/firmware
+    cd $root/$root/ma35_zsp_firmware/firmware
     git config pull.rebase false
     git reset --hard
     git pull origin $ma35_zsp_firmware_branch
@@ -245,82 +245,90 @@ function build(){
         mkdir build
     fi
     cd build
-    cmake ../ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_REPOS=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true  -DMA35_BUILD_KERNEL_OSAL=true -DREPO_BUILD_TESTS_vsi_libs=true
+    cmake $root/ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_REPOS=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true  -DMA35_BUILD_KERNEL_OSAL=true -DREPO_BUILD_TESTS_vsi_libs=true
     ninja ffmpeg_vsi sn_int 
     ninja kernel_module zsp_firmware
     ninja srmtool
 }
 
 function remove_rpath(){
-    cd $root_dir/build/out/$output_pkg_name;
-    patchelf --remove-rpath ./ffmpeg
+    outpath=$1
+    cd $outpath 1>&/dev/null
+    patchelf --remove-needed libvpi.so ./ffmpeg
     libs=(GAL OpenVX xabrsdk common VSC ArchModelSw NNArchPerf h2enc g2dec cache)
     for lib in ${libs[@]}; do
-        patchelf --remove-needed _deps/vsi_libs-build/src/vpe/prebuild/lib$lib.so libvpi.so
-        patchelf --remove-needed lib$lib.so libvpi.so
+        patchelf --remove-needed _deps/vsi_libs-build/src/vpe/prebuild/lib$lib.so ./libvpi.so
+        patchelf --remove-needed _deps/vsi_libs-build/src/vpe/prebuild/lib$lib.so ./ffmpeg
         patchelf --add-needed lib$lib.so ./ffmpeg
         patchelf --add-needed lib$lib.so ./ffprobe
     done
-    cd -
+    patchelf --add-needed libvpi.so ./ffmpeg
+    cd - 1>&/dev/null
 }
 
 function package(){
     build_path=$1
-    cd $root_dir;
-    version=$(grep -o '".*"' ma35_vsi_libs/src/vpe/inc/version.h | sed 's/"//g')
-    output_pkg_name=cmake_vpe_package_x86_64_linux_$version
-    outpath=out/$output_pkg_name
     if [[ "$build_path" == "" ]]; then
         build_path=build
     elif [[ ! -d $build_path ]]; then
         echo "path $build_path is not available"
         exit 1
     fi
-    echo "Generating MA35 software installation package..."
-    cd $build_path
+    build_path=$(realpath $build_path)
+    root=`pwd`
+    version=$(grep -o '".*"' $root/ma35_vsi_libs/src/vpe/inc/version.h | sed 's/"//g')
+    output_pkg_name=cmake_vpe_package_x86_64_linux_$version
+    outpath=$build_path/out/$output_pkg_name
+    echo "Generating MA35 software installation package at $(realpath $build_path)..."
 
-    rm $outpath -rf && mkdir -p $outpath
+    rm $outpath -rf && mkdir -p $outpath 2>/dev/null
     mkdir $outpath/cmodel/
     mkdir $outpath/firmware/
     mkdir $outpath/JSON/asic/ -p
     mkdir $outpath/JSON/fpga/ -p
 
     ## copy libs
-    cp ../ma35_vsi_libs/src/vpe/prebuild/libs/x86_64_linux/* $outpath/ -rf
-    cp _deps/ffmpeg-build/ffmpeg $outpath/
-    cp _deps/ffmpeg-build/ffprobe $outpath/
-    cp _deps/vsi_libs-build/src/vpe/tools/srmtool $outpath/
-    cp _deps/vsi_libs-build/sdk/xabr/libxabrsdk.so $outpath/
-    cp _deps/vsi_libs-build/src/vpe/src/libvpi.so $outpath/
-    cp _deps/sn_int_ext-build/lib/libsn_int.so $outpath/
-    cp ../ma35_shelf/xav1sdk/libxav1sdk.so $outpath/
-    cp ../ma35_shelf/xma/libxma.so $outpath/
-    cp ../ma35_shelf/xrm/libxrm.so.1 $outpath/libxrm.so
-    cp ../ma35_shelf/roi_scale/libroi_scale.so $outpath
+    echo "copying libs..."
+    cp $root/ma35_vsi_libs/src/vpe/prebuild/libs/x86_64_linux/* $outpath/ -rf
+    cp $build_path/_deps/ffmpeg-build/ffmpeg $outpath/
+    cp $build_path/_deps/ffmpeg-build/ffprobe $outpath/
+    cp $build_path/_deps/vsi_libs-build/src/vpe/tools/srmtool $outpath/
+    cp $build_path/_deps/vsi_libs-build/sdk/xabr/libxabrsdk.so $outpath/
+    cp $build_path/_deps/vsi_libs-build/src/vpe/src/libvpi.so $outpath/
+    cp $build_path/_deps/sn_int_ext-build/lib/libsn_int.so $outpath/
+    cp $root/ma35_shelf/xav1sdk/libxav1sdk.so $outpath/
+    cp $root/ma35_shelf/xma/libxma.so $outpath/
+    cp $root/ma35_shelf/xrm/libxrm.so.1 $outpath/libxrm.so
+    cp $root/ma35_shelf/roi_scale/libroi_scale.so $outpath
     
     ## copy firmware
-    cp ../ma35_shelf/firmware_platform/* $outpath/firmware/
-    cp _deps/zsp_firmware-build/zsp_firmware_packed_pcie.bin $outpath/firmware/supernova_zsp_fw_evb.bin -rf
+    echo "copying firmware..."
+    cp $root/ma35_shelf/firmware_platform/* $outpath/firmware/
+    cp $build_path/_deps/zsp_firmware-build/zsp_firmware_packed_pcie.bin $outpath/firmware/supernova_zsp_fw_evb.bin -rf
 
     ## copy cmodel related
-    cp ../ma35_shelf/ma35_sn_int/libxabr_sim.so $outpath/cmodel/
-    cp ../ma35_shelf/ma35_sn_int/libvc8000d_sim.so $outpath/cmodel/
-    cp ../ma35_shelf/ma35_sn_int/libxav1_sim.so $outpath/cmodel/
-    cp ../ma35_shelf/ma35_sn_int/libvc8000e_sim.so $outpath/cmodel/
-    cp ../ma35_shelf/host_device_algo/libhost_device_algo.so $outpath/
+    echo "copying cmodel files..."
+    cp $root/ma35_shelf/ma35_sn_int/libxabr_sim.so $outpath/cmodel/
+    cp $root/ma35_shelf/ma35_sn_int/libvc8000d_sim.so $outpath/cmodel/
+    cp $root/ma35_shelf/ma35_sn_int/libxav1_sim.so $outpath/cmodel/
+    cp $root/ma35_shelf/ma35_sn_int/libvc8000e_sim.so $outpath/cmodel/
+    cp $root/ma35_shelf/host_device_algo/libhost_device_algo.so $outpath/
 
     ## copy drivers
-    mv ../ma35_linux_kernel/src ../ma35_linux_kernel/drivers 2>/dev/null
-    mv ../ma35_linux_kernel/drivers/.git ../ma35_linux_kernel/drivers/vsi.git 2>/dev/null
-    cd ../ma35_linux_kernel/ && tar -czf ../build/$outpath/drivers.tgz drivers && cd -
-    mv ../ma35_linux_kernel/drivers/vsi.git ../ma35_linux_kernel/drivers/.git 2>/dev/null
-    mv ../ma35_linux_kernel/drivers ../ma35_linux_kernel/src 2>/dev/null
+    echo "copying driver source code..."
+    mv $root/ma35_linux_kernel/src $root/ma35_linux_kernel/drivers 2>/dev/null
+    mv $root/ma35_linux_kernel/drivers/.git $root/ma35_linux_kernel/drivers/vsi.git 2>/dev/null
+    cd $root/ma35_linux_kernel/ && tar -czf $outpath/drivers.tgz drivers && cd - 1>&/dev/null
+    mv $root/ma35_linux_kernel/drivers/vsi.git $root/ma35_linux_kernel/drivers/.git 2>/dev/null
+    mv $root/ma35_linux_kernel/drivers $root/ma35_linux_kernel/src 2>/dev/null
 
     ## copy scripts
-    cp ../ma35_vsi_libs/src/vpe/build/install.sh $outpath/
-    cp ../ma35_vsi_libs/src/vpe/tools/*.sh $outpath/
+    echo "copying test scripts..."
+    cp $root/ma35_vsi_libs/src/vpe/build/install.sh $outpath/
+    cp $root/ma35_vsi_libs/src/vpe/tools/*.sh $outpath/
 
     # copy model files
+    echo "copying VIP model files..."
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/yolo_v2.nb" -P $outpath/JSON/asic/
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/mobilenet_v1.nb" -P $outpath/JSON/asic/
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/bodypix.nb" -P $outpath/JSON/asic/
@@ -334,10 +342,12 @@ function package(){
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/cae_cc.nb" -P $outpath/JSON/fpga
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/cae_cxc.nb" -P $outpath/JSON/fpga
 
-    cd out
-    remove_rpath
+    echo "removing rpath from libs..."
+    remove_rpath $outpath
+    echo "packaging..."
+    cd $outpath/../ 1>&/dev/null
     tar -czf $output_pkg_name.tgz $output_pkg_name/
-    echo "$output_pkg_name.tgz was generated at `pwd`"
+    echo "package was generated: `pwd`/$output_pkg_name.tgz"
 }
 
 function help(){
@@ -394,7 +404,7 @@ function gen_merge_codebase()
     git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/ffmpeg/ffmpeg" -b spsd/master
     git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/drivers" -b spsd/master
     git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe" -b spsd/master
-    cd ../
+    cd $root/
 
     cp ma35_shelf/host_device_algo/libhost_device_algo.so vsi/vpe/prebuild/libs/x86_64_linux/
     cp ma35_shelf/ma35_sn_int/lib*.so vsi/vpe/prebuild/libs/x86_64_linux/cmodel/
@@ -459,7 +469,7 @@ for (( i=1; i <=$#; i++ )); do
     build)
         build;;
     package)
-        package $next_value;;
+        package $next_value; i=$((i+1));;
     gen_merge_codebase)
         gen_merge_codebase;;
     gen_vsi_codebase)
