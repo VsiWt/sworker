@@ -253,6 +253,7 @@ function build(){
 
 function remove_rpath(){
     cd $root_dir/build/out/$output_pkg_name;
+    patchelf --remove-rpath ./ffmpeg
     libs=(GAL OpenVX xabrsdk common VSC ArchModelSw NNArchPerf h2enc g2dec cache)
     for lib in ${libs[@]}; do
         patchelf --remove-needed _deps/vsi_libs-build/src/vpe/prebuild/lib$lib.so libvpi.so
