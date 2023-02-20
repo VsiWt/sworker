@@ -1,6 +1,6 @@
 #!/bin/bash
 
-root_dir=`pwd`
+root=`pwd`
 gerrit_user=cn1208
 github_user=GYZHANG2019
 ma35_vsi_libs_branch=develop
@@ -13,8 +13,6 @@ ma35_branch=develop
 amd_gits_mirror=y
 include_sdk=y
 
-repos=(ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel ma35 ma35_osal ma35_zsp_firmware ma35_shelf)
-
 function create_folder(){
     folder=fork_`date "+%m%d%H%M"`
     mkdir $folder &&
@@ -23,11 +21,14 @@ function create_folder(){
     echo $folder
 }
 
+amd_repos=(ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel ma35 ma35_osal ma35_zsp_firmware ma35_shelf)
+
 function clone_amd_gits(){
-    cd $root_dir;
+    cd $root;
     rm ma35* build -rf
     idx=1
-    for repo in ${repos[@]}; do
+    echo "Will clone amd gits: ${amd_repos[@]}"
+    for repo in ${amd_repos[@]}; do
         branch=$repo"_branch"
         branch=`eval echo '$'"$branch"`
         if [[ "$amd_gits_mirror" == "y" ]]; then
@@ -47,9 +48,9 @@ function clone_amd_gits(){
 }
 
 function sync_fork(){
-    cd $root_dir;
+    cd $root;
     idx=1
-    for repo in ${repos[@]}; do
+    for repo in ${amd_repos[@]}; do
         cd $repo
         if (( $? != 0 )); then
             echo "repo $repo is not exist"
@@ -78,9 +79,9 @@ function sync_fork(){
 }
 
 function fetch_amd_gits(){
-    cd $root_dir;
+    cd $root;
     idx=1
-    for repo in ${repos[@]}; do
+    for repo in ${amd_repos[@]}; do
         cd $repo
         branch=$repo"_branch"
         branch=`eval echo '$'"$branch"`
@@ -94,11 +95,11 @@ function fetch_amd_gits(){
 }
 
 function fetch_vsi_gits(){
-    cd $root_dir;
+    cd $root;
     idx=1
 
-    local mirrow_repos=(ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel ma35_osal)
-    for repo in ${mirrow_repos[@]}; do
+    local mirrow_amd_repos=(ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel ma35_osal)
+    for repo in ${mirrow_amd_repos[@]}; do
         cd $repo/src
         if (( $? != 0 )); then
             echo "folder $repo/src is not exist"
@@ -124,10 +125,10 @@ function fetch_vsi_gits(){
 }
 
 function push_to_amd_gits(){
-    cd $root_dir;
+    cd $root;
     idx=1
 
-    for repo in ${repos[@]}; do
+    for repo in ${amd_repos[@]}; do
         branch=$repo"_branch"
         branch=`eval echo '$'"$branch"`
         echo -e "\n$idx. pusing $repo..."
@@ -147,46 +148,43 @@ function push_to_amd_gits(){
 
 function clone_vsi_gits(){
 
-    gits=($@)
-    if [[ "$gits" == "" ]]; then
-        gits=(ffmpeg vpe osal build common VC8000D VC8000E VIP2D drivers firmware)
-    fi
+    gits=(ffmpeg vpe osal build common VC8000D VC8000E VIP2D drivers firmware)
 
     echo "Will clone VSI gits: ${gits[@]}"
 
     if [[ "${gits[@]}" =~ "ffmpeg" ]];then
         echo "clone ffmpeg from VSI gerrit..."
-        cd $root_dir/ma35_ffmpeg/ && rm src -rf
+        cd $root/ma35_ffmpeg/ && rm src -rf
         git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/ffmpeg/ffmpeg" src -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "src/.git/hooks/"
     fi
 
     if [[ "${gits[@]}" =~ "drivers" ]];then
         echo "clone drivers from VSI gerrit..."
-        cd $root_dir/ma35_linux_kernel/ && rm src -rf
+        cd $root/ma35_linux_kernel/ && rm src -rf
         git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/drivers" src -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "src/.git/hooks/"
     fi
 
     if [[ "${gits[@]}" =~ "osal" ]];then
         echo "clone osal from VSI gerrit..."
-        cd $root_dir/ma35_osal/ && rm src -rf
+        cd $root/ma35_osal/ && rm src -rf
         git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_osal" src -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "src/.git/hooks/"
     fi
 
     if [[ "${gits[@]}" =~ "firmware" ]];then
         echo "clone firmware from VSI gerrit..."
-        cd $root_dir/ma35_zsp_firmware/ && rm firmware -rf
+        cd $root/ma35_zsp_firmware/ && rm firmware -rf
         git clone "ssh://cn1208@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/Firmware" firmware -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "firmware/.git/hooks/"
     fi
 
     if [[ "${gits[@]}" =~ "vpe" ]];then
         echo "clone vpe from VSI gerrit..."
-        cd $root_dir/ma35_vsi_libs/src && rm vpe -rf
+        cd $root/ma35_vsi_libs/src && rm vpe -rf
         echo "clone vsi libs from VSI gerrit..."
         git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe" vpe -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "vpe/.git/hooks/"
     fi
 
     if [ "$include_sdk" == "y" ]; then
-        cd $root_dir/ma35_vsi_libs/sdk
+        cd $root/ma35_vsi_libs/sdk
         if [[  "${gits[@]}" =~ "common" ]];then
             rm common -rf
             git clone "ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/gitlab/Transcoder/common" -b spsd/master && scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg "common/.git/hooks/"
@@ -240,29 +238,24 @@ function gen_vsi_codebase(){
 
 function build(){
     echo "Building full project with CMake..."
-    cd $root_dir
+    cd $root
     if [ ! -d build ]; then
         mkdir build
     fi
     cd build
-    cmake $root/ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_REPOS=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true  -DMA35_BUILD_KERNEL_OSAL=true -DREPO_BUILD_TESTS_vsi_libs=true
+    cmake $root/ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_amd_repos=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true  -DMA35_BUILD_KERNEL_OSAL=true -DREPO_BUILD_TESTS_vsi_libs=true
     ninja ffmpeg_vsi sn_int 
     ninja kernel_module zsp_firmware
     ninja srmtool
 }
 
 function remove_rpath(){
-    outpath=$1
-    cd $outpath 1>&/dev/null
-    patchelf --remove-needed libvpi.so ./ffmpeg
-    libs=(GAL OpenVX xabrsdk common VSC ArchModelSw NNArchPerf h2enc g2dec cache)
+    cd $1 1>&/dev/null
+    patchelf --remove-rpath ffmpeg ffprobe
+    libs=(common h2enc g2dec cache)
     for lib in ${libs[@]}; do
         patchelf --remove-needed _deps/vsi_libs-build/src/vpe/prebuild/lib$lib.so ./libvpi.so
-        patchelf --remove-needed _deps/vsi_libs-build/src/vpe/prebuild/lib$lib.so ./ffmpeg
-        patchelf --add-needed lib$lib.so ./ffmpeg
-        patchelf --add-needed lib$lib.so ./ffprobe
     done
-    patchelf --add-needed libvpi.so ./ffmpeg
     cd - 1>&/dev/null
 }
 
@@ -274,8 +267,8 @@ function package(){
         echo "path $build_path is not available"
         exit 1
     fi
+    cd $root
     build_path=$(realpath $build_path)
-    root=`pwd`
     version=$(grep -o '".*"' $root/ma35_vsi_libs/src/vpe/inc/version.h | sed 's/"//g')
     output_pkg_name=cmake_vpe_package_x86_64_linux_$version
     outpath=$build_path/out/$output_pkg_name
@@ -288,7 +281,7 @@ function package(){
     mkdir $outpath/JSON/fpga/ -p
 
     ## copy libs
-    echo "copying libs..."
+    echo "1. copying libs..."
     cp $root/ma35_vsi_libs/src/vpe/prebuild/libs/x86_64_linux/* $outpath/ -rf
     cp $build_path/_deps/ffmpeg-build/ffmpeg $outpath/
     cp $build_path/_deps/ffmpeg-build/ffprobe $outpath/
@@ -302,12 +295,12 @@ function package(){
     cp $root/ma35_shelf/roi_scale/libroi_scale.so $outpath
     
     ## copy firmware
-    echo "copying firmware..."
+    echo "2. copying firmware..."
     cp $root/ma35_shelf/firmware_platform/* $outpath/firmware/
     cp $build_path/_deps/zsp_firmware-build/zsp_firmware_packed_pcie.bin $outpath/firmware/supernova_zsp_fw_evb.bin -rf
 
     ## copy cmodel related
-    echo "copying cmodel files..."
+    echo "3. copying cmodel files..."
     cp $root/ma35_shelf/ma35_sn_int/libxabr_sim.so $outpath/cmodel/
     cp $root/ma35_shelf/ma35_sn_int/libvc8000d_sim.so $outpath/cmodel/
     cp $root/ma35_shelf/ma35_sn_int/libxav1_sim.so $outpath/cmodel/
@@ -315,20 +308,20 @@ function package(){
     cp $root/ma35_shelf/host_device_algo/libhost_device_algo.so $outpath/
 
     ## copy drivers
-    echo "copying driver source code..."
-    mv $root/ma35_linux_kernel/src $root/ma35_linux_kernel/drivers 2>/dev/null
-    mv $root/ma35_linux_kernel/drivers/.git $root/ma35_linux_kernel/drivers/vsi.git 2>/dev/null
-    cd $root/ma35_linux_kernel/ && tar -czf $outpath/drivers.tgz drivers && cd - 1>&/dev/null
-    mv $root/ma35_linux_kernel/drivers/vsi.git $root/ma35_linux_kernel/drivers/.git 2>/dev/null
-    mv $root/ma35_linux_kernel/drivers $root/ma35_linux_kernel/src 2>/dev/null
+    echo "4. copying driver source code..."
+    cp $root/ma35_linux_kernel/src $root/ma35_linux_kernel/drivers -rf 2>/dev/null
+    cd $root/ma35_linux_kernel/drivers 1>/dev/null && ./build_driver.sh clean 1>/dev/null && rm .git -rf && cd - 1>/dev/null
+    cp $root/ma35_osal/src/include/* $root/ma35_linux_kernel/drivers -rf
+    cd $root/ma35_linux_kernel/ 1>/dev/null && tar -czf $outpath/drivers.tgz drivers
+    rm $root/ma35_linux_kernel/drivers -rf
 
     ## copy scripts
-    echo "copying test scripts..."
+    echo "5. copying test scripts..."
     cp $root/ma35_vsi_libs/src/vpe/build/install.sh $outpath/
     cp $root/ma35_vsi_libs/src/vpe/tools/*.sh $outpath/
 
     # copy model files
-    echo "copying VIP model files..."
+    echo "6. copying VIP model files..."
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/yolo_v2.nb" -P $outpath/JSON/asic/
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/mobilenet_v1.nb" -P $outpath/JSON/asic/
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/bodypix.nb" -P $outpath/JSON/asic/
@@ -342,12 +335,12 @@ function package(){
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/cae_cc.nb" -P $outpath/JSON/fpga
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/cae_cxc.nb" -P $outpath/JSON/fpga
 
-    echo "removing rpath from libs..."
+    echo "7. removing ffmpeg rpath..."
     remove_rpath $outpath
-    echo "packaging..."
+    echo "8. packaging..."
     cd $outpath/../ 1>&/dev/null
     tar -czf $output_pkg_name.tgz $output_pkg_name/
-    echo "package was generated: `pwd`/$output_pkg_name.tgz"
+    echo "9. done! package was generated: `pwd`/$output_pkg_name"
 }
 
 function help(){
@@ -378,7 +371,7 @@ function help(){
 
 function gen_merge_codebase()
 {
-    cd $root_dir;
+    cd $root;
     rm merge -rf
     mkdir merge && cd merge
 
@@ -412,6 +405,7 @@ function gen_merge_codebase()
     rm ma35_shelf -rf
 }
 
+root=`pwd`
 for (( i=1; i <=$#; i++ )); do
     opt=${!i}
     optarg="${opt#*=}"
@@ -452,8 +446,8 @@ for (( i=1; i <=$#; i++ )); do
         echo "include_sdk=$optarg"
         include_sdk=$optarg;;
     new_project)
-        root_dir=$(realpath $(create_folder))
-        echo "new project $root_dir had been created";;
+        root=$(realpath $(create_folder))
+        echo "new project $root had been created";;
     sync_fork)
         sync_fork $next_value;;
     clone_amd_gits)
