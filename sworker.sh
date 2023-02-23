@@ -289,6 +289,7 @@ function package(){
     cp $build_path/_deps/vsi_libs-build/sdk/xabr/libxabrsdk.so $outpath/
     cp $build_path/_deps/vsi_libs-build/src/vpe/src/libvpi.so $outpath/
     cp $build_path/_deps/sn_int_ext-build/lib/libsn_int.so $outpath/
+    cp $build_path/_deps/apps-build/xrm_apps/xrm_interface/libxrm_interface.so $outpath/
     cp $root/ma35_shelf/xav1sdk/libxav1sdk.so $outpath/
     cp $root/ma35_shelf/xma/libxma.so $outpath/
     cp $root/ma35_shelf/xrm/libxrm.so.1 $outpath/libxrm.so
