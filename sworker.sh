@@ -10,7 +10,7 @@ ma35_osal_branch=develop
 ma35_zsp_firmware_branch=develop
 ma35_shelf_branch=develop
 ma35_branch=develop
-amd_gits_mirror=y
+amd_gits_mirror=n
 include_sdk=y
 
 function create_folder(){
