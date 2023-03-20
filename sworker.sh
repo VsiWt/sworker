@@ -10,7 +10,7 @@ ma35_osal_branch=develop
 ma35_zsp_firmware_branch=develop
 ma35_shelf_branch=develop
 ma35_branch=develop
-amd_gits_mirror=n
+amd_gits_mirror=y
 include_sdk=y
 
 function create_folder(){
@@ -365,6 +365,7 @@ function help(){
     echo "$0 fetch_vsi_gits:                fetch all changes in VSI gits, and fetch VSI gits"
     echo "$0 push_to_amd_gits:              push to AMD gits"
     echo "$0 build:                         do full build"
+    echo "$0 clean:                         clean the build"
     echo "$0 gen_merge_codebase:            generate merge codebase"
     echo "$0 gen_vsi_codebase:              generate VSI codebase"
     echo "$0 package <build folder>:        package all requied files"
@@ -404,6 +405,13 @@ function gen_merge_codebase()
     cp ma35_shelf/ma35_sn_int/lib*.so vsi/vpe/prebuild/libs/x86_64_linux/cmodel/
     cp ma35_shelf/xav1sdk/libxav1sdk.so vsi/vpe/prebuild/libs/x86_64_linux/
     rm ma35_shelf -rf
+}
+
+function clean()
+{
+    cd build
+    ninja kernel_module_clean vsi_lib_sdk_clean
+    cd -
 }
 
 root=`pwd`
@@ -465,6 +473,8 @@ for (( i=1; i <=$#; i++ )); do
         build;;
     package)
         package $next_value; i=$((i+1));;
+    clean)
+        clean;;
     gen_merge_codebase)
         gen_merge_codebase;;
     gen_vsi_codebase)
