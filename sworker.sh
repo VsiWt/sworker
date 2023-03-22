@@ -83,6 +83,8 @@ function fetch_amd_gits(){
     idx=1
     for repo in ${amd_repos[@]}; do
         cd $repo
+        git reset --hard
+        git clean -xdf
         branch=$repo"_branch"
         branch=`eval echo '$'"$branch"`
         echo -e "\n$idx. updating AMD $repo..."
@@ -105,6 +107,8 @@ function fetch_vsi_gits(){
             echo "folder $repo/src is not exist"
             exit 1
         fi
+        git reset --hard
+        git clean -xdf
         branch=$repo"_branch"
         branch=`eval echo '$'"$branch"`
         echo -e "\n$idx. updating VSI $repo..."
@@ -245,8 +249,8 @@ function build(){
     cd build
     cmake $root/ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_amd_repos=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true -DREPO_BUILD_TESTS_vsi_libs=true
     ninja ffmpeg_vsi sn_int 
-    ninja kernel_module zsp_firmware
     ninja srmtool
+    ninja zsp_firmware kernel_module 
 }
 
 function remove_rpath(){
