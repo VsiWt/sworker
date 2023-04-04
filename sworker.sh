@@ -333,6 +333,7 @@ function package(){
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/resnet_50.nb" -P $outpath/JSON/asic/
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/cae_cc.nb" -P $outpath/JSON/asic/
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/cae_cxc.nb" -P $outpath/JSON/asic/
+    wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/vsi_roi.nb" -P $outpath/JSON/asic/
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/yolo_v2.nb" -P $outpath/JSON/fpga
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/mobilenet_v1.nb" -P $outpath/JSON/fpga
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/bodypix.nb" -P $outpath/JSON/fpga
