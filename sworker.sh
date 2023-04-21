@@ -248,10 +248,11 @@ function build(){
     fi
     cd build
     cmake $root/ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_amd_repos=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true -DREPO_BUILD_TESTS_vsi_libs=true -DREPO_BUILD_TESTS_ddbi=true -DVFIO=true
-    ninja
+    ninja 
     ninja ffmpeg_vsi sn_int 
     ninja srmtool
-    ninja zsp_firmware kernel_module 
+    ninja zsp_firmware
+    ninja kernel_module 
 }
 
 function remove_rpath(){
@@ -294,12 +295,18 @@ function package(){
     cp $build_path/_deps/vsi_libs-build/sdk/xabr/libxabrsdk.so $outpath/
     cp $build_path/_deps/vsi_libs-build/src/vpe/src/libvpi.so $outpath/
     cp $build_path/_deps/sn_int_ext-build/lib/libsn_int.so $outpath/
+    cp $build_path/_deps/ddbi-build/lib/jsf_mamgmt/libjsf_mamgmt.so $outpath/
+    cp $build_path/_deps/ddbi-build/lib/jsf_mautil/libjsf_mautil.so $outpath/
+    cp $build_path/_deps/ddbi-build/lib/jsf_xrm/libjsf_xrm.so $outpath/
+    cp $build_path/_deps/ddbi-build/testapps/jmamgmt $outpath/
+    cp $build_path/_deps/ddbi-build/testapps/jmautil $outpath/
+    cp $build_path/_deps/ddbi-build/testapps/jxrm $outpath/
     cp $build_path/_deps/apps-build/xrm_apps/xrm_interface/libxrm_interface.so $outpath/
     cp $root/ma35_shelf/xav1sdk/libxav1sdk.so $outpath/
     cp $root/ma35_shelf/xma/libxma.so $outpath/
     cp $root/ma35_shelf/xrm/libxrm.so.1 $outpath/libxrm.so
     cp $root/ma35_shelf/roi_scale/libroi_scale.so $outpath
-    
+
     ## copy firmware
     echo "2. copying firmware..."
     cp $root/ma35_shelf/firmware_platform/* $outpath/firmware/
@@ -334,7 +341,6 @@ function package(){
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/resnet_50.nb" -P $outpath/JSON/asic/
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/cae_cc.nb" -P $outpath/JSON/asic/
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/cae_cxc.nb" -P $outpath/JSON/asic/
-    wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/asic_nbg/vsi_roi.nb" -P $outpath/JSON/asic/
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/yolo_v2.nb" -P $outpath/JSON/fpga
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/mobilenet_v1.nb" -P $outpath/JSON/fpga
     wget --quiet "https://coding-app1.verisilicon.com/resource/Transcoding/stream/JSON/fpga_nbg/bodypix.nb" -P $outpath/JSON/fpga
@@ -416,6 +422,7 @@ function gen_merge_codebase()
 function clean()
 {
     cd build
+    ninja clean
     ninja kernel_module_clean vsi_lib_sdk_clean
     cd -
 }
