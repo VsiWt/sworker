@@ -310,8 +310,8 @@ function package(){
     ## copy firmware
     echo "2. copying firmware..."
     cp $root/ma35_shelf/firmware_platform/* $outpath/firmware/
-    cp $build_path/_deps/zsp_firmware-build/zsp_firmware_packed_pcie.bin $outpath/firmware/supernova_zsp_fw_evb.bin -rf
-    cp $build_path/_deps/zsp_firmware-build/zsp_firmware_packed.bin $outpath/firmware/supernova_zsp_fw_ma35.bin -rf
+    cp $build_path/_deps/zsp_firmware-build/zsp_firmware_packed_pcie.bin $outpath/firmware/supernova_zsp_fw.bin -rf
+    cp $build_path/_deps/zsp_firmware-build/zsp_firmware_packed.bin      $outpath/firmware/supernova_zsp_fw_evb_flash.bin -rf
 
     ## copy cmodel related
     echo "3. copying cmodel files..."
