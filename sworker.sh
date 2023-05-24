@@ -152,7 +152,11 @@ function push_to_amd_gits(){
 
 function clone_vsi_gits(){
 
-    gits=(ffmpeg vpe osal build common VC8000D VC8000E VIP2D drivers firmware)
+    if [[ "$1" == "" ]]; then
+        gits=(ffmpeg vpe osal build common VC8000D VC8000E VIP2D drivers firmware)
+    else
+        gits=("${@}")
+    fi
 
     echo "Will clone VSI gits: ${gits[@]}"
 
@@ -248,11 +252,11 @@ function build(){
     fi
     cd build
     cmake $root/ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_amd_repos=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true -DREPO_BUILD_TESTS_vsi_libs=true -DREPO_BUILD_TESTS_ddbi=true -DVFIO=true
-    ninja 
-    ninja ffmpeg_vsi sn_int 
+    ninja
+    ninja ffmpeg_vsi sn_int
     ninja srmtool
     ninja zsp_firmware
-    ninja kernel_module 
+    ninja kernel_module
 }
 
 function remove_rpath(){
@@ -476,7 +480,7 @@ for (( i=1; i <=$#; i++ )); do
     clone_amd_gits)
         clone_amd_gits $next_value;;
     clone_vsi_gits)
-        clone_vsi_gits $next_value;;
+        i=$((i+1)); clone_vsi_gits "${@:$i}"; exit 1;;
     fetch_amd_gits)
         fetch_amd_gits $next_value;;
     fetch_vsi_gits)
