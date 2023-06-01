@@ -89,7 +89,7 @@ function fetch_amd_gits(){
         branch=`eval echo '$'"$branch"`
         echo -e "\n$idx. updating AMD $repo..."
         git config pull.rebase false
-        git reset --hard && git pull origin $branch
+        git reset --hard && git fetch origin && git checkout $branch
         idx=$((idx+1))
         cd ..
     done
