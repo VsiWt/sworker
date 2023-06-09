@@ -355,9 +355,17 @@ function package(){
 
     echo "7. removing ffmpeg rpath..."
     remove_rpath $outpath
-    echo "8. packaging..."
+
+    echo "8. copying latest ffprobe and stest.sh"
+    git clone --depth 1 -b spsd/master ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe 2>/dev/null
+    cp vpe/prebuild/libs/x86_64_linux/ffprobe $outpath/ -rf
+    cp vpe/tools/stest.sh $outpath/
+    rm vpe/ -rf
+
+    echo "9. packaging..."
     cd $outpath/../ 1>&/dev/null
     tar -czf $output_pkg_name.tgz $output_pkg_name/
+
     echo "9. done! package was generated: `pwd`/$output_pkg_name"
 }
 
