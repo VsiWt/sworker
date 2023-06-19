@@ -298,6 +298,7 @@ function package(){
     cp $build_path/_deps/vsi_libs-build/src/vpe/tools/srmtool $outpath/
     cp $build_path/_deps/vsi_libs-build/sdk/xabr/libxabrsdk.so $outpath/
     cp $build_path/_deps/vsi_libs-build/src/vpe/src/libvpi.so $outpath/
+    cp $build_path/_deps/osal-build/libosal.so $outpath/
     cp $build_path/_deps/sn_int_ext-build/lib/libsn_int.so $outpath/
     cp $build_path/_deps/ddbi-build/lib/jsf_mamgmt/libjsf_mamgmt.so $outpath/
     cp $build_path/_deps/ddbi-build/lib/jsf_mautil/libjsf_mautil.so $outpath/
