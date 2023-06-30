@@ -126,8 +126,7 @@ function build(){
     fi
     cd build
     cmake $root/ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_amd_repos=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_BUILD_TESTS_vsi_libs=true
-    ninja osal
-    ninja ffmpeg_vsi
+    ninja osal xabrsdk ffmpeg_vsi
     ninja srmtool
     ninja zsp_firmware
     ninja kernel_module
@@ -173,13 +172,6 @@ function package(){
     cp $build_path/_deps/vsi_libs-build/sdk/xabr/libxabrsdk.so $outpath/
     cp $build_path/_deps/vsi_libs-build/src/vpe/src/libvpi.so $outpath/
     cp $build_path/_deps/osal-build/libosal.so $outpath/
-    cp $build_path/_deps/sn_int_ext-build/lib/libsn_int.so $outpath/
-    cp $build_path/_deps/ddbi-build/lib/jsf_mamgmt/libjsf_mamgmt.so $outpath/
-    cp $build_path/_deps/ddbi-build/lib/jsf_mautil/libjsf_mautil.so $outpath/
-    cp $build_path/_deps/ddbi-build/lib/jsf_xrm/libjsf_xrm.so $outpath/
-    cp $build_path/_deps/ddbi-build/testapps/jmamgmt $outpath/
-    cp $build_path/_deps/ddbi-build/testapps/jmautil $outpath/
-    cp $build_path/_deps/ddbi-build/testapps/jxrm $outpath/
     cp $build_path/_deps/apps-build/xrm_apps/xrm_interface/libxrm_interface.so $outpath/
     cp $root/ma35_shelf/xav1sdk/libxav1sdk.so $outpath/
     cp $root/ma35_shelf/xma/libxma.so $outpath/
