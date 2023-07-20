@@ -295,6 +295,13 @@ function package(){
     cp $root/ma35_vsi_libs/src/vpe/prebuild/libs/x86_64_linux/* $outpath/ -rf
     cp $build_path/_deps/ffmpeg-build/ffmpeg $outpath/
     cp $build_path/_deps/ffmpeg-build/ffprobe $outpath/
+    cp $build_path/_deps/ffmpeg-build/libavfilter/libavfilter.so $outpath/
+    cp $build_path/_deps/ffmpeg-build/libswscale/libswscale.so $outpath/
+    cp $build_path/_deps/ffmpeg-build/libavdevice/libavdevice.so $outpath/
+    cp $build_path/_deps/ffmpeg-build/libavformat/libavformat.so $outpath/
+    cp $build_path/_deps/ffmpeg-build/libswresample/libswresample.so $outpath/
+    cp $build_path/_deps/ffmpeg-build/libavcodec/libavcodec.so $outpath/
+    cp $build_path/_deps/ffmpeg-build/libavutil/libavutil.so $outpath/
     cp $build_path/_deps/vsi_libs-build/src/vpe/tools/srmtool $outpath/
     cp $build_path/_deps/vsi_libs-build/sdk/xabr/libxabrsdk.so $outpath/
     cp $build_path/_deps/vsi_libs-build/src/vpe/src/libvpi.so $outpath/
