@@ -9,6 +9,7 @@ ma35_linux_kernel_branch=develop
 ma35_osal_branch=develop
 ma35_zsp_firmware_branch=develop
 ma35_shelf_branch=develop
+ma35_tools_branch=develop
 ma35_branch=develop
 amd_gits_mirror=y
 include_sdk=y
@@ -21,31 +22,8 @@ function create_folder(){
     echo $folder
 }
 
-amd_repos=(ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel ma35 ma35_osal ma35_zsp_firmware ma35_shelf)
-
-function clone_amd_gits(){
-    cd $root;
-    rm ma35* build -rf
-    idx=1
-    echo "Will clone amd gits: ${amd_repos[@]}"
-    for repo in ${amd_repos[@]}; do
-        branch=$repo"_branch"
-        branch=`eval echo '$'"$branch"`
-        if [[ "$amd_gits_mirror" == "y" ]]; then
-            git="ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/$repo"
-        else
-            git="git@github.com:$github_user/$repo.git"
-        fi
-        echo -e "\n$idx. clone $git...$branch"
-        git clone "$git" -b $branch
-        if (( $? != 0 )); then
-            echo "git clone $git failed"
-            exit 1
-        fi
-        idx=$((idx+1))
-    done
-    echo "clone_amd_gits done"
-}
+amd_repos=(ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel ma35_tools ma35 ma35_osal ma35_zsp_firmware ma35_shelf)
+vsi_repos=(ffmpeg vpe osal build common VC8000D VC8000E VIP2D drivers firmware)
 
 function sync_fork(){
     cd $root;
@@ -150,10 +128,40 @@ function push_to_amd_gits(){
     echo "push_to_amd_gits done"
 }
 
+function clone_amd_gits(){
+    if [[ "$1" == "" ]]; then
+        gits=${amd_repos[@]}
+    else
+        gits=("${@}")
+    fi
+
+    cd $root;
+    idx=1
+    echo "Will clone amd gits: ${gits[@]}"
+    for repo in ${gits[@]}; do
+        branch=$repo"_branch"
+        branch=`eval echo '$'"$branch"`
+        if [[ "$amd_gits_mirror" == "y" ]]; then
+            git="ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/$repo"
+        else
+            git="git@github.com:$github_user/$repo.git"
+        fi
+        echo -e "\n$idx. clone $git...$branch"
+        rm $repo -rf
+        git clone "$git" -b $branch
+        if (( $? != 0 )); then
+            echo "git clone $git failed"
+            exit 1
+        fi
+        idx=$((idx+1))
+    done
+    echo "clone_amd_gits done"
+}
+
 function clone_vsi_gits(){
 
     if [[ "$1" == "" ]]; then
-        gits=(ffmpeg vpe osal build common VC8000D VC8000E VIP2D drivers firmware)
+        gits=${vsi_repos[@]}
     else
         gits=("${@}")
     fi
@@ -251,7 +259,7 @@ function build(){
         mkdir build
     fi
     cd build
-    cmake $root/ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_amd_repos=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true -DREPO_BUILD_TESTS_vsi_libs=true -DREPO_BUILD_TESTS_ddbi=true -DVFIO=true
+    cmake $root/ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_amd_repos=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_tools=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true -DREPO_BUILD_TESTS_vsi_libs=true -DREPO_BUILD_TESTS_ddbi=true -DVFIO=true
     ninja
     ninja ffmpeg_vsi sn_int
     ninja srmtool
@@ -397,7 +405,7 @@ function help(){
     echo "$0 --ma35_shelf_branch=:          set the AMD gits shelf branch name.[$ma35_shelf_branch]"
     echo "$0 new_project:                   create one new rmpty project."
     echo "$0 sync_fork:                     sync forked gits to owner."
-    echo "$0 clone_amd_gits:                remove orignal AMD git, clone a new AMD gits."
+    echo "$0 clone_amd_gits:                remove orignal AMD git, clone a new AMD gits. gits can be or more of [ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel ma35 ma35_osal ma35_zsp_firmware ma35_shelf]"
     echo "$0 clone_vsi_gits [git][git]...:  remove orignal VSI git, clone a new VSI gits. gits can be or more of [ffmpeg vpe osal build common VC8000D VC8000E VIP2D drivers firmware]"
     echo "$0 fetch_amd_gits:                reset all local changes, and fetch AMD fork"
     echo "$0 fetch_vsi_gits:                fetch all changes in VSI gits, and fetch VSI gits"
@@ -499,7 +507,7 @@ for (( i=1; i <=$#; i++ )); do
     sync_fork)
         sync_fork $next_value;;
     clone_amd_gits)
-        clone_amd_gits $next_value;;
+        i=$((i+1)); clone_amd_gits "${@:$i}"; exit 1;;
     clone_vsi_gits)
         i=$((i+1)); clone_vsi_gits "${@:$i}"; exit 1;;
     fetch_amd_gits)
