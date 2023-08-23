@@ -6,7 +6,7 @@ github_user=GYZHANG2019
 ma35_vsi_libs_branch="release/v1.0.0"
 ma35_ffmpeg_branch="release/v1.0.0"
 ma35_linux_kernel_branch="release/v1.0.0"
-ma35_osal_branch="release/v1.0.0"
+ma35_osal_branch="develop"
 ma35_zsp_firmware_branch="release/v1.0.0"
 ma35_shelf_branch="release/v1.0.0"
 ma35_tools_branch="release/v1.0.0"
@@ -78,8 +78,8 @@ function fetch_vsi_gits(){
     cd $root;
     idx=1
 
-    local mirrow_amd_repos=(ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel ma35_osal)
-    for repo in ${mirrow_amd_repos[@]}; do
+    local mirror_amd_repos=(ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel ma35_osal)
+    for repo in ${mirror_amd_repos[@]}; do
         cd $repo/src
         if (( $? != 0 )); then
             echo "folder $repo/src is not exist"
@@ -120,7 +120,7 @@ function push_to_amd_gits(){
             git commit -m "integration $date"
             git push origin $branch -f
         else
-            echo "Can't push anything to mirrow"
+            echo "Can't push anything to mirror"
         fi
         idx=$((idx+1))
         cd -
