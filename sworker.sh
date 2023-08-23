@@ -11,7 +11,7 @@ ma35_zsp_firmware_branch="release/v1.0.0"
 ma35_shelf_branch="release/v1.0.0"
 ma35_tools_branch="release/v1.0.0"
 ma35_branch="release/v1.0.0"
-amd_gits_mirror=y
+amd_gits_mirror=n
 include_sdk=y
 
 function create_folder(){
