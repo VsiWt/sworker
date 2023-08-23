@@ -3,14 +3,14 @@
 root=`pwd`
 gerrit_user=cn1208
 github_user=GYZHANG2019
-ma35_vsi_libs_branch=develop
-ma35_ffmpeg_branch=develop
-ma35_linux_kernel_branch=develop
-ma35_osal_branch=develop
-ma35_zsp_firmware_branch=develop
-ma35_shelf_branch=develop
-ma35_tools_branch=develop
-ma35_branch=develop
+ma35_vsi_libs_branch="release/v1.0.0"
+ma35_ffmpeg_branch="release/v1.0.0"
+ma35_linux_kernel_branch="release/v1.0.0"
+ma35_osal_branch="release/v1.0.0"
+ma35_zsp_firmware_branch="release/v1.0.0"
+ma35_shelf_branch="release/v1.0.0"
+ma35_tools_branch="release/v1.0.0"
+ma35_branch="release/v1.0.0"
 amd_gits_mirror=y
 include_sdk=y
 
@@ -321,6 +321,7 @@ function package(){
     cp $build_path/_deps/ddbi-build/testapps/jmautil $outpath/
     cp $build_path/_deps/ddbi-build/testapps/jxrm $outpath/
     cp $build_path/_deps/apps-build/xrm_apps/xrm_interface/libxrm_interface.so $outpath/
+    cp $build_path/_deps/tools-build/log_ama/liblog_ama.so $outpath/
     cp $root/ma35_shelf/xav1sdk/libxav1sdk.so $outpath/
     cp $root/ma35_shelf/xma/libxma.so $outpath/
     cp $root/ma35_shelf/xrm/libxrm.so.1 $outpath/libxrm.so
