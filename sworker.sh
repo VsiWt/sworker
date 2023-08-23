@@ -343,11 +343,11 @@ function package(){
 
     ## copy drivers
     echo "4. copying driver source code..."
-    cp $root/ma35_linux_kernel/src $root/ma35_linux_kernel/drivers -rf 2>/dev/null
-    cd $root/ma35_linux_kernel/drivers 1>/dev/null && ./build_driver.sh clean 1>/dev/null && rm .git -rf && cd - 1>/dev/null
-    cp $root/ma35_osal/src/include/* $root/ma35_linux_kernel/drivers -rf
-    cd $root/ma35_linux_kernel/ 1>/dev/null && tar -czf $outpath/drivers.tgz drivers
-    rm $root/ma35_linux_kernel/drivers -rf
+    cp $root/ma35_linux_kernel/ $root/drivers -rf 2>/dev/null
+    cd $root/drivers/src 1>/dev/null && ./build_driver.sh clean 1>/dev/null && rm .git -rf && cd - 1>/dev/null
+    cp $root/ma35_osal/src/include/* $root/drivers/src -rf
+    tar -czf $outpath/drivers.tgz drivers
+    rm $root/drivers -rf
 
     ## copy scripts
     echo "5. copying test scripts..."
@@ -380,7 +380,8 @@ function package(){
     echo "8. copying latest ffprobe and stest.sh"
     git clone --depth 1 -b spsd/master ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe 2>/dev/null
     cp vpe/prebuild/libs/x86_64_linux/ffprobe $outpath/ -rf
-    cp vpe/tools/stest.sh $outpath/
+    cp vpe/tools/*.sh $outpath/
+    cp vpe/build/install.sh $outpath/
     rm vpe/ -rf
 
     echo "9. packaging..."
