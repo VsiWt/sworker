@@ -330,8 +330,8 @@ function package(){
     ## copy firmware
     echo "2. copying firmware..."
     cp $root/ma35_shelf/firmware_platform/* $outpath/firmware/
-    cp $build_path/_deps/zsp_firmware-build/zsp_firmware_packed_pcie.bin $outpath/firmware/supernova_zsp_fw_evb.bin -rf
-    cp $build_path/_deps/zsp_firmware-build/zsp_firmware_packed.bin      $outpath/firmware/supernova_zsp_fw_evb_flash.bin -rf
+    cp $build_path/_deps/zsp_firmware-build/supernova_zsp_fw.bin $outpath/firmware/supernova_zsp_fw_evb.bin -rf
+    cp $build_path/_deps/zsp_firmware-build/zsp_firmware_packed.bin $outpath/firmware/supernova_zsp_fw_evb_flash.bin -rf
 
     ## copy cmodel related
     echo "3. copying cmodel files..."
@@ -356,23 +356,8 @@ function package(){
 
     # copy model files
     echo "6. copying VIP model files..."
-    cp $root/ma35_vsi_libs/src/vpe/src/processor/vip/model/yolo/yolo_v2.json $outpath/JSON/independent
-    cp $root/ma35_vsi_libs/src/vpe/src/processor/vip/model/mobilenet/mobilenet_v1.json $outpath/JSON/independent
-    cp $root/ma35_vsi_libs/src/vpe/src/processor/vip/model/bodypix/bodypix.json $outpath/JSON/independent
-    cp $root/ma35_vsi_libs/src/vpe/src/processor/vip/model/resnet_50/resnet_50.json $outpath/JSON/independent
-    cp $root/ma35_vsi_libs/src/vpe/src/processor/vip/model/cae_cc/cae_cc.json $outpath/JSON/independent
-
-    cp $root/ma35_vsi_libs/src/vpe/src/processor/vip/model/yolo/yolo_v2_physical.json $outpath/JSON/independent_physical
-    cp $root/ma35_vsi_libs/src/vpe/src/processor/vip/model/mobilenet/mobilenet_v1_physical.json $outpath/JSON/independent_physical
-    cp $root/ma35_vsi_libs/src/vpe/src/processor/vip/model/bodypix/bodypix_physical.json $outpath/JSON/independent_physical
-    cp $root/ma35_vsi_libs/src/vpe/src/processor/vip/model/resnet_50/resnet_50_physical.json $outpath/JSON/independent_physical
-    cp $root/ma35_vsi_libs/src/vpe/src/processor/vip/model/cae_cc/cae_cc_physical.json $outpath/JSON/independent_physical
-
-    cp $root/ma35_vsi_libs/src/vpe/src/processor/vip/model/yolo/yolo_v2_ind_416x416.nb $outpath/JSON/independent/yolo_v2.nb
-    cp $root/ma35_vsi_libs/src/vpe/src/processor/vip/model/mobilenet/mobilenet_v1_ind_224x224.nb $outpath/JSON/independent/mobilenet_v1.nb
-    cp $root/ma35_vsi_libs/src/vpe/src/processor/vip/model/bodypix/bodypix_ind_640x480.nb $outpath/JSON/independent/bodypix.nb
-    cp $root/ma35_vsi_libs/src/vpe/src/processor/vip/model/resnet_50/resnet_50_ind_224x224.nb $outpath/JSON/independent/resnet_50.nb
-    cp $root/ma35_vsi_libs/src/vpe/src/processor/vip/model/cae_cc/cae_cc_ind_224x224.nb $outpath/JSON/independent/cae_cc.nb
+    find  $root/ma35_vsi_libs/src/vpe/src/processor/vip/model/ -type f -name *.json -exec cp {} $outpath/JSON/independent \;
+    find  $outpath/JSON/independent/ -type f -name *physical.json -exec mv {} $outpath/JSON/independent_physical \;
 
     echo "7. removing ffmpeg rpath..."
     remove_rpath $outpath
