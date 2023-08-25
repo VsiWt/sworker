@@ -356,8 +356,8 @@ function package(){
 
     # copy model files
     echo "6. copying VIP model files..."
-    find  $root/ma35_vsi_libs/src/vpe/src/processor/vip/model/ -type f -name *.json -exec cp {} $outpath/JSON/independent \;
-    find  $outpath/JSON/independent/ -type f -name *physical.json -exec mv {} $outpath/JSON/independent_physical \;
+    find  $root/ma35_vsi_libs/src/vpe/src/processor/vip/model/ -type f -name *.json -exec cp {} $outpath/JSON/independent/ \;
+    mv $outpath/JSON/independent/*physical.json $outpath/JSON/independent_physical/
 
     echo "7. removing ffmpeg rpath..."
     remove_rpath $outpath
