@@ -365,6 +365,7 @@ function package(){
     echo "8. copying latest ffprobe and stest.sh"
     git archive --remote=ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe spsd/master prebuild/libs/x86_64_linux/ffprobe | tar xO > $outpath/ffprobe
     git archive --remote=ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe spsd/master tools/stest.sh | tar xO > $outpath/stest.sh
+    git archive --remote=ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe spsd/master build/install.sh | tar xO > $outpath/install.sh
     git archive --remote=ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe spsd/master tools/smoke_test.sh | tar xO > $outpath/smoke_test.sh
 
     echo "9. packaging..."
