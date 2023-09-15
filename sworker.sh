@@ -1,16 +1,17 @@
 #!/bin/bash
 
 root=`pwd`
+default_branch="develop_1.1_merge"
 gerrit_user=cn1208
 github_user=GYZHANG2019
-ma35_vsi_libs_branch="release/v1.0.0"
-ma35_ffmpeg_branch="release/v1.0.0"
-ma35_linux_kernel_branch="release/v1.0.0"
+ma35_vsi_libs_branch="$default_branch"
+ma35_ffmpeg_branch="$default_branch"
+ma35_linux_kernel_branch="$default_branch"
 ma35_osal_branch="develop"
-ma35_zsp_firmware_branch="release/v1.0.0"
-ma35_shelf_branch="release/v1.0.0"
-ma35_tools_branch="release/v1.0.0"
-ma35_branch="release/v1.0.0"
+ma35_zsp_firmware_branch="$default_branch"
+ma35_shelf_branch="$default_branch"
+ma35_tools_branch="$default_branch"
+ma35_branch="$default_branch"
 amd_gits_mirror=n
 include_sdk=y
 
@@ -380,6 +381,7 @@ function help(){
     echo "$0 --gerrit_user=:                set the gerrit account wich contains VSI gits.[$gerrit_user]"
     echo "$0 --github_user=:                set the github account wich contains AMD gits.[$github_user]"
     echo "$0 --include_sdk=:                y/n: whether clone VSI SDK code.[$include_sdk]"
+    echo "$0 --default_branch=:             default branch name.[$default_branch]"
     echo "$0 --ma35_vsi_libs_branch=:       set the AMD gits vsi_lib branch name.[$ma35_vsi_libs_branch]"
     echo "$0 --ma35_ffmpeg_branch=:         set the AMD gits ffmpeg branch name.[$ma35_ffmpeg_branch]"
     echo "$0 --ma35_linux_kernel_branch=:   set the AMD gits drivers branch name.[$ma35_linux_kernel_branch]"
@@ -461,6 +463,16 @@ for (( i=1; i <=$#; i++ )); do
     --github_user=*)
         echo "github_user=$optarg"
         github_user=$optarg;;
+    --default_branch=*)
+    	default_branch=$optarg
+	ma35_vsi_libs_branch="$default_branch"
+	ma35_ffmpeg_branch="$default_branch"
+	ma35_linux_kernel_branch="$default_branch"
+	ma35_osal_branch="develop"
+	ma35_zsp_firmware_branch="$default_branch"
+	ma35_shelf_branch="$default_branch"
+	ma35_tools_branch="$default_branch"
+	ma35_branch="$default_branch";;
     --ma35_vsi_libs_branch=*)
         echo "ma35_vsi_libs_branch=$optarg"
         ma35_vsi_libs_branch=$optarg;;
