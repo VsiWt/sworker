@@ -1,6 +1,7 @@
 #!/bin/bash
 
 root=`pwd`
+remote_branch="develop"
 default_branch="spsd/develop"
 gerrit_user=cn1208
 github_user=GYZHANG2019
@@ -16,19 +17,19 @@ ma35_branch="$default_branch"
 amd_gits_mirror=y
 
 function create_folder(){
-    folder=fork_`date "+%m%d%H%M"`
+    folder=supernova_`date "+%m%d%H%M"`
     mkdir $folder &&
     cd $folder &&
-    ln -s $root/$0 . &&
+    ln -s ../$0 . &&
     echo $folder
 }
 
-amd_repos=(ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel ma35_tools ma35 ma35_ddbi ma35_osal ma35_zsp_firmware ma35_shelf)
+repos=(ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel ma35_tools ma35 ma35_ddbi ma35_osal ma35_zsp_firmware ma35_shelf)
 
 function sync_fork(){
     cd $root;
     idx=1
-    for repo in ${amd_repos[@]}; do
+    for repo in ${repos[@]}; do
         cd $repo
         if (( $? != 0 )); then
             echo "repo $repo is not exist"
@@ -39,7 +40,7 @@ function sync_fork(){
         user=${str%%/*}
         branch=$repo"_branch"
         branch=`eval echo '$'"$branch"`
-        echo -e "\n$idx. sync AMD $repo..."
+        echo -e "\n$idx. sync $repo..."
         if [[ "$(git remote -v | grep "gerrit")" == "" ]]; then
             gh repo sync -b $branch --force $user/$repo
             if (( $? != 0 )); then
@@ -59,11 +60,11 @@ function sync_fork(){
 function sync(){
     cd $root;
     idx=1
-    for repo in ${amd_repos[@]}; do
+    for repo in ${repos[@]}; do
         cd $repo
         branch=$repo"_branch"
         branch=`eval echo '$'"$branch"`
-        echo -e "\n$idx. updating AMD $repo..."
+        echo -e "\n$idx. updating $repo..."
         git config pull.rebase false
         git pull origin $branch
         idx=$((idx+1))
@@ -75,31 +76,47 @@ function sync(){
 function reset(){
     cd $root;
     idx=1
-    for repo in ${amd_repos[@]}; do
+    for repo in ${repos[@]}; do
         cd $repo
-        git reset --hard
         git clean -xdf
         branch=$repo"_branch"
         branch=`eval echo '$'"$branch"`
-        echo -e "\n$idx. updating AMD $repo..."
-        git config pull.rebase false
-        git reset --hard && git fetch origin && git checkout origin/$branch -f
+        echo -e "\n$idx. updating $repo..."
+        git checkout -b tmp
+        git branch -D $branch > /dev/null
+        git checkout -b $branch origin/$branch
+        git branch -D tmp
         idx=$((idx+1))
         cd ..
     done
     echo "fetch_amd_gits done"
 }
 
-function clone(){
-    if [[ "$1" == "" ]]; then
-        gits=${amd_repos[@]}
-    else
-        gits=("${@}")
-    fi
+function merge(){
+    gits=${repos[@]}
+    idx=0
+    for repo in ${gits[@]}; do
+        cd $repo
+        branch=$repo"_branch"
+        branch=`eval echo '$'"$branch"`
+        printf "$idx. $repo..."
+        git fetch origin > /dev/null
+        log=$(git merge origin/$remote_branch --autostash)
+        if [[ "$log" != "Already up to date." ]]; then
+            git push origin HEAD:refs/for/$branch > /dev/null
+            echo -e "Merge $repo was done\n"
+        else
+            echo -e "no changes\n"
+        fi
+        idx=$((idx+1))
+        cd ..
+    done
+}
 
+function clone(){
+    gits=${repos[@]}
     cd $root;
     idx=1
-    echo "Will clone amd gits: ${gits[@]}"
     for repo in ${gits[@]}; do
         branch=$repo"_branch"
         branch=`eval echo '$'"$branch"`
@@ -127,9 +144,8 @@ function build(){
         mkdir build
     fi
     cd build
-    cmake $root/ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_amd_repos=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_tools=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ddbi=true -DREPO_USE_LOCAL_ma35=true  -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true -DREPO_BUILD_TESTS_vsi_libs=true
-    ninja ffmpeg_vsi
-    ninja srmtool
+    cmake $root/ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_repos=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_tools=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ddbi=true -DREPO_USE_LOCAL_ma35=true  -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true -DREPO_BUILD_TESTS_vsi_libs=true
+    ninja osal ffmpeg_vsi
     ninja _deps/zsp_firmware-build/supernova_zsp_fw.bin
 }
 
@@ -141,6 +157,11 @@ function remove_rpath(){
         patchelf --remove-needed _deps/vsi_libs-build/src/vpe/prebuild/lib$lib.so ./libvpi.so
     done
     cd - 1>&/dev/null
+}
+
+function install(){
+    cd $(ls -d build/out/*/ | head -n 1)
+    ./install.sh
 }
 
 function package(){
@@ -168,7 +189,6 @@ function package(){
     echo "1. copying libs..."
     cp $root/ma35_vsi_libs/src/vpe/prebuild/libs/x86_64_linux/* $outpath/ -rf
     cp $build_path/_deps/ffmpeg-build/ffmpeg $outpath/
-    cp $build_path/_deps/ffmpeg-build/ffprobe $outpath/
     cp $build_path/_deps/ffmpeg-build/libavfilter/libavfilter.so $outpath/
     cp $build_path/_deps/ffmpeg-build/libswscale/libswscale.so $outpath/
     cp $build_path/_deps/ffmpeg-build/libavdevice/libavdevice.so $outpath/
@@ -177,19 +197,18 @@ function package(){
     cp $build_path/_deps/ffmpeg-build/libavcodec/libavcodec.so $outpath/
     cp $build_path/_deps/ffmpeg-build/libavutil/libavutil.so $outpath/
     cp $build_path/_deps/vsi_libs-build/src/vpe/tools/srmtool $outpath/
-    cp $build_path/_deps/vsi_libs-build/sdk/xabr/libxabrsdk.so $outpath/
     cp $build_path/_deps/vsi_libs-build/src/vpe/src/libvpi.so $outpath/
-    cp $build_path/_deps/osal-build/libosal.so $outpath/
-    cp $build_path/_deps/sn_int_ext-build/lib/libsn_int.so $outpath/
-    cp $build_path/_deps/ddbi-build/lib/jsf_mamgmt/libjsf_mamgmt.so $outpath/
-    cp $build_path/_deps/ddbi-build/lib/jsf_mautil/libjsf_mautil.so $outpath/
-    cp $build_path/_deps/ddbi-build/lib/jsf_xrm/libjsf_xrm.so $outpath/
-    cp $build_path/_deps/ddbi-build/testapps/jmamgmt $outpath/
-    cp $build_path/_deps/ddbi-build/testapps/jmautil $outpath/
-    cp $build_path/_deps/ddbi-build/testapps/jxrm $outpath/
+    # cp $build_path/_deps/osal-build/libosal.so $outpath/
+    # cp $build_path/_deps/sn_int_ext-build/lib/libsn_int.so $outpath/
+    # cp $build_path/_deps/ddbi-build/lib/jsf_mamgmt/libjsf_mamgmt.so $outpath/
+    # cp $build_path/_deps/ddbi-build/lib/jsf_mautil/libjsf_mautil.so $outpath/
+    # cp $build_path/_deps/ddbi-build/lib/jsf_xrm/libjsf_xrm.so $outpath/
+    # cp $build_path/_deps/ddbi-build/testapps/jmamgmt $outpath/
+    # cp $build_path/_deps/ddbi-build/testapps/jmautil $outpath/
+    # cp $build_path/_deps/ddbi-build/testapps/jxrm $outpath/
     cp $build_path/_deps/apps-build/xrm_apps/xrm_interface/libxrm_interface.so $outpath/
     cp $build_path/_deps/tools-build/log_ama/liblog_ama.so $outpath/
-    cp $root/ma35_shelf/xav1sdk/libxav1sdk.so $outpath/
+    cp $root/ma35_shelf/xav1sdk/libxav1sdk-shelf.a $outpath/
     cp $root/ma35_shelf/xma/libxma.so $outpath/
     cp $root/ma35_shelf/xrm/libxrm.so.1 $outpath/libxrm.so
     cp $root/ma35_shelf/roi_scale/libroi_scale.so $outpath
@@ -198,7 +217,7 @@ function package(){
     echo "2. copying firmware..."
     cp $root/ma35_shelf/firmware_platform/* $outpath/firmware/ -rf
     cp $build_path/_deps/zsp_firmware-build/supernova_zsp_fw.bin $outpath/firmware/supernova_zsp_fw_evb.bin -rf
-    cp $build_path/_deps/zsp_firmware-build/zsp_firmware_packed.bin $outpath/firmware/supernova_zsp_fw_evb_flash.bin -rf
+    # cp $build_path/_deps/zsp_firmware-build/zsp_firmware_packed.bin $outpath/firmware/supernova_zsp_fw_evb_flash.bin -rf
 
     ## copy cmodel related
     echo "3. copying cmodel files..."
@@ -229,12 +248,6 @@ function package(){
     echo "7. removing ffmpeg rpath..."
     remove_rpath $outpath
 
-    echo "8. copying latest ffprobe and stest.sh"
-    git archive --remote=ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe spsd/master prebuild/libs/x86_64_linux/ffprobe | tar xO > $outpath/ffprobe
-    git archive --remote=ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe spsd/master tools/stest.sh | tar xO > $outpath/stest.sh
-    git archive --remote=ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe spsd/master build/install.sh | tar xO > $outpath/install.sh
-    git archive --remote=ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/VSI/SDK/vpe spsd/master tools/smoke_test.sh | tar xO > $outpath/smoke_test.sh
-
     echo "9. packaging..."
     cd $outpath/../ 1>&/dev/null
     tar -czf $output_pkg_name.tgz $output_pkg_name/
@@ -245,7 +258,7 @@ function package(){
 function help(){
     echo "$0 --amd_gits_mirror=:            y/n, whether enable the gits mirror.[$amd_gits_mirror] "
     echo "$0 --gerrit_user=:                set the gerrit account wich contains VSI gits.[$gerrit_user]"
-    echo "$0 --github_user=:                set the github account wich contains AMD gits.[$github_user]"
+    echo "$0 --github_user=:                set the github account wich contains gits.[$github_user]"
     echo "$0 --default_branch=:             default branch name.[$default_branch]"
     echo "$0 --ma35_vsi_libs_branch=:       set the vsi_lib branch name.[$ma35_vsi_libs_branch]"
     echo "$0 --ma35_ffmpeg_branch=:         set the ffmpeg branch name.[$ma35_ffmpeg_branch]"
@@ -254,14 +267,15 @@ function help(){
     echo "$0 --ma35_zsp_firmware_branch=:   set the drivers branch name.[$ma35_zsp_firmware_branch]"
     echo "$0 --ma35_branch=:                set the ma35 branch name.[$ma35_branch]"
     echo "$0 --ma35_shelf_branch=:          set the shelf branch name.[$ma35_shelf_branch]"
-    echo "$0 new:                           create one new rmpty project."
-    echo "$0 clone:                         by default it will clone all of the gits, you can also clone one of them in [ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel ma35 ma35_osal ma35_zsp_firmware ma35_shelf]"
+    echo "$0 new:                           create one new empty folder."
+    echo "$0 clone:                         clone all of the gits"
     echo "$0 sync:                          sync the full codebase."
     echo "$0 sync_fork:                     If you worked on a forked github codebase, this command can help to sync from main git."
-    echo "$0 reset:                         reset all local changes"
+    echo "$0 reset:                         reset all repos to remote head"
+    echo "$0 merge:                         merge remote changes to head of gits"
     echo "$0 build:                         do full build"
     echo "$0 clean:                         clean the build"
-    echo "$0 package:                       package all requied files"
+    echo "$0 install:                       install the built files into your system"
 }
 
 function clean()
@@ -289,15 +303,15 @@ for (( i=1; i <=$#; i++ )); do
         echo "github_user=$optarg"
         github_user=$optarg;;
     --default_branch=*)
-    	default_branch=$optarg
-	ma35_vsi_libs_branch="$default_branch"
-	ma35_ffmpeg_branch="$default_branch"
-	ma35_linux_kernel_branch="$default_branch"
-	ma35_osal_branch="develop"
-	ma35_zsp_firmware_branch="$default_branch"
-	ma35_shelf_branch="$default_branch"
-	ma35_tools_branch="$default_branch"
-	ma35_branch="$default_branch";;
+        default_branch=$optarg
+        ma35_vsi_libs_branch="$default_branch"
+        ma35_ffmpeg_branch="$default_branch"
+        ma35_linux_kernel_branch="$default_branch"
+        ma35_osal_branch="develop"
+        ma35_zsp_firmware_branch="$default_branch"
+        ma35_shelf_branch="$default_branch"
+        ma35_tools_branch="$default_branch"
+        ma35_branch="$default_branch";;
     --ma35_vsi_libs_branch=*)
         echo "ma35_vsi_libs_branch=$optarg"
         ma35_vsi_libs_branch=$optarg;;
@@ -323,17 +337,20 @@ for (( i=1; i <=$#; i++ )); do
         root=$(realpath $(create_folder))
         echo "new project $root had been created";;
     clone)
-        i=$((i+1)); clone "${@:$i}"; exit 1;;
+        clone;;
     sync)
-        sync $next_value;;
+        sync;;
     sync_fork)
-        sync_fork $next_value;;
+        sync_fork;;
     reset)
-        reset $next_value;;
+        reset;;
+    merge)
+        merge;;
     build)
-        build;;
-    package)
-        package $next_value; i=$((i+1));;
+        build
+        package;;
+    install)
+        install;;
     clean)
         clean;;
     --help|help)
