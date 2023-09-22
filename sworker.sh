@@ -1,18 +1,18 @@
 #!/bin/bash
 
 root=`pwd`
-default_branch="develop_1.1_merge"
+default_branch="spsd/develop"
 gerrit_user=cn1208
 github_user=GYZHANG2019
 ma35_vsi_libs_branch="$default_branch"
 ma35_ffmpeg_branch="$default_branch"
 ma35_linux_kernel_branch="$default_branch"
-ma35_osal_branch="develop"
+ma35_osal_branch="$default_branch"
 ma35_zsp_firmware_branch="$default_branch"
 ma35_shelf_branch="$default_branch"
 ma35_tools_branch="$default_branch"
 ma35_branch="$default_branch"
-amd_gits_mirror=n
+amd_gits_mirror=y
 include_sdk=y
 
 function create_folder(){
