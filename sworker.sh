@@ -13,6 +13,8 @@ ma35_zsp_firmware_branch="$default_branch"
 ma35_shelf_branch="$default_branch"
 ma35_tools_branch="$default_branch"
 ma35_ddbi_branch="$default_branch"
+ma35_xma_branch="develop"
+ma35_apps_branch="develop"
 ma35_branch="$default_branch"
 amd_gits_mirror=y
 
@@ -24,7 +26,7 @@ function create_folder(){
     echo $folder
 }
 
-repos=(ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel ma35_tools ma35 ma35_ddbi ma35_osal ma35_zsp_firmware ma35_shelf)
+repos=(ma35_vsi_libs ma35_ffmpeg ma35_linux_kernel ma35_tools ma35 ma35_ddbi ma35_xma ma35_apps ma35_osal ma35_zsp_firmware ma35_shelf)
 
 function sync_fork(){
     cd $root;
@@ -85,6 +87,7 @@ function reset(){
         git checkout -b tmp
         git branch -D $branch > /dev/null
         git checkout -b $branch origin/$branch
+        git reset --hard
         git branch -D tmp
         idx=$((idx+1))
         cd ..
@@ -144,9 +147,10 @@ function build(){
         mkdir build
     fi
     cd build
-    cmake $root/ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_repos=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_tools=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ddbi=true -DREPO_USE_LOCAL_ma35=true  -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true -DREPO_BUILD_TESTS_vsi_libs=true
+    cmake $root/ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_repos=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_tools=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ddbi=true -DREPO_USE_LOCAL_xma=true  -DREPO_USE_LOCAL_apps=true -DREPO_USE_LOCAL_tools=true -DREPO_USE_LOCAL_ma35=true  -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true -DREPO_BUILD_TESTS_vsi_libs=true
     ninja osal ffmpeg_vsi
-    ninja _deps/zsp_firmware-build/supernova_zsp_fw.bin
+    cd -
+    make_firmware
 }
 
 function remove_rpath(){
@@ -157,6 +161,12 @@ function remove_rpath(){
         patchelf --remove-needed _deps/vsi_libs-build/src/vpe/prebuild/lib$lib.so ./libvpi.so
     done
     cd - 1>&/dev/null
+}
+
+function make_firmware(){
+    export PATH=/usr/local/ZSP/ZView5.16.0/cmdtools/bin:$PATH
+    export LD_LIBRARY_PATH=/usr/local/ZSP/ZView5.16.0/cmdtools/lib:$LD_LIBRARY_PATH
+    make -C ma35_zsp_firmware/firmware
 }
 
 function install(){
@@ -196,7 +206,6 @@ function package(){
     cp $build_path/_deps/ffmpeg-build/libswresample/libswresample.so $outpath/
     cp $build_path/_deps/ffmpeg-build/libavcodec/libavcodec.so $outpath/
     cp $build_path/_deps/ffmpeg-build/libavutil/libavutil.so $outpath/
-    cp $build_path/_deps/vsi_libs-build/src/vpe/tools/srmtool $outpath/
     cp $build_path/_deps/vsi_libs-build/src/vpe/src/libvpi.so $outpath/
     # cp $build_path/_deps/osal-build/libosal.so $outpath/
     # cp $build_path/_deps/sn_int_ext-build/lib/libsn_int.so $outpath/
@@ -216,8 +225,8 @@ function package(){
     ## copy firmware
     echo "2. copying firmware..."
     cp $root/ma35_shelf/firmware_platform/* $outpath/firmware/ -rf
-    cp $build_path/_deps/zsp_firmware-build/supernova_zsp_fw.bin $outpath/firmware/supernova_zsp_fw_evb.bin -rf
-    # cp $build_path/_deps/zsp_firmware-build/zsp_firmware_packed.bin $outpath/firmware/supernova_zsp_fw_evb_flash.bin -rf
+    cp ma35_zsp_firmware/firmware/tools/output/zsp_firmware_packed_pcie.bin $outpath/firmware/supernova_zsp_fw_evb.bin &&
+    cp ma35_zsp_firmware/firmware/tools/output/zsp_firmware_packed.bin $outpath/firmware/supernova_zsp_fw_evb_flash.bin
 
     ## copy cmodel related
     echo "3. copying cmodel files..."
@@ -280,10 +289,8 @@ function help(){
 
 function clean()
 {
-    cd build
-    ninja clean
-    ninja kernel_module_clean vsi_lib_sdk_clean
-    cd -
+    rm build -rf
+    find . -name *.o | xargs rm
 }
 
 root=`pwd`
@@ -357,9 +364,8 @@ for (( i=1; i <=$#; i++ )); do
         help ;
         exit 0;;
     *)
-        echo "invalid input $optarg";
-        help;
-        exit 1;
-        ;;
+        echo "invalid input $optarg"
+        help
+        exit 1;;
     esac
 done
