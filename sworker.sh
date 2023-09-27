@@ -306,6 +306,71 @@ function help(){
     echo "$0 build:                         do full build"
     echo "$0 clean:                         clean the build"
     echo "$0 install:                       install the built files into your system"
+    echo "$0 pr [branch] [title] [CL]:      create PR automatically."
+}
+
+function check(){
+    if (( $1 != 0 )); then
+        echo "error($1) on command:"
+        echo "$2"
+        exit 1
+    fi
+}
+
+function create_pr(){
+    branch=$1
+    args=("$@")
+    cls=(${args[@]:1})
+
+    if [[ "$branch" == "" ]]; then
+        echo "branch is empty"
+        exit 1
+    fi
+
+    if [[ "$cls" == "" ]] || [[ "$(echo $cls | grep gerrit)" == "" ]]; then
+        echo "invalid gerrit CL"
+        exit 1
+    fi
+
+    echo "will release below CLs on branch \"$branch\":"
+    echo -e ${cls[@]}
+    repo=$(echo ${cls[0]} | grep -o 'ma35[^/]*')
+    cd $repo
+
+    echo -e "\n1. prepare code base..."
+    cmd="git checkout origin/$remote_branch -f 2>/dev/null"
+    echo $cmd | sh || check $? "$cmd"
+
+    cmd="git branch -D $branch 2>/dev/null"
+    echo $cmd | sh
+
+    cmd="git checkout -b $branch 2>/dev/null"
+    echo $cmd | sh || check $? "$cmd"
+    if [[ "$(git remote -v | awk '{print $1}' | grep gerrit)" == "" ]]; then
+        cmd="git remote add gerrit ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/$repo 2>/dev/null"
+        echo $cmd | sh || check $? "$cmd"
+    fi
+    cmd="git fetch gerrit spsd/develop 2>/dev/null"
+    echo $cmd | sh || check $? "$cmd"
+
+    echo -e "\n2. cherry-pick changes"
+    for cl in ${cls[@]}; do
+        echo " pick $cl..."
+        change_id=$(echo $cl | grep -oP '\+/+\K[0-9]+')
+        patch_set="${change_id: -1}"
+        cmd="git fetch ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/$repo refs/changes/${change_id: -2}/$change_id/$patch_set 2>/dev/null && git cherry-pick FETCH_HEAD 2>/dev/null"
+        echo $cmd | sh || check $? "$cmd"
+    done
+
+    echo -e "\n3. push new branch $branch"
+    cmd="git push origin $branch 2>/dev/null"
+    echo $cmd | sh || check $? "$cmd"
+
+    cmd="gh pr create -R Xilinx-Projects/$repo --head $github_user:branch --base $remote_branch --fill"
+    printf "4. create PR"
+    pr_link=$(echo $cmd | sh)
+    check $? "$cmd"
+    echo  "PR $pr_link had been created!"
 }
 
 function clean()
@@ -370,6 +435,8 @@ for (( i=1; i <=$#; i++ )); do
         clone;;
     sync)
         sync;;
+    pr)
+        i=$((i+1)); create_pr "${@:$i}" ;;
     sync_fork)
         sync_fork;;
     reset)
