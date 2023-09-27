@@ -355,19 +355,19 @@ function create_pr(){
 
     echo -e "\n2. cherry-pick changes"
     for cl in ${cls[@]}; do
-        echo " pick $cl..."
+        echo " $cl..."
         change_id=$(echo $cl | grep -oP '\+/+\K[0-9]+')
         patch_set="${change_id: -1}"
         cmd="git fetch ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/$repo refs/changes/${change_id: -2}/$change_id/$patch_set 2>/dev/null && git cherry-pick FETCH_HEAD 2>/dev/null"
         echo $cmd | sh || check $? "$cmd"
     done
 
-    echo -e "\n3. push new branch $branch"
+    echo -e "\n3. push changes to branch: $branch"
     cmd="git push origin $branch 2>/dev/null"
     echo $cmd | sh || check $? "$cmd"
 
-    cmd="gh pr create -R Xilinx-Projects/$repo --head $github_user:branch --base $remote_branch --fill"
-    printf "4. create PR"
+    cmd="gh pr create -R Xilinx-Projects/$repo --head $github_user:$branch --base $remote_branch --fill"
+    echo -e "\n4. creating PR"
     pr_link=$(echo $cmd | sh)
     check $? "$cmd"
     echo  "PR $pr_link had been created!"
