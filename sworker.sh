@@ -1,4 +1,6 @@
 #!/bin/bash
+source $(dirname $(readlink -f $0))/update.sh
+# update_sworker
 
 root=`pwd`
 remote_branch="develop"
@@ -84,8 +86,10 @@ function reset(){
         branch=$repo"_branch"
         branch=`eval echo '$'"$branch"`
         echo -e "\n$idx. updating $repo..."
+        git merge --abort 2> /dev/null
+        git branch -D tmp 2> /dev/null
         git checkout -b tmp
-        git branch -D $branch > /dev/null
+        git branch -D $branch 2> /dev/null
         git checkout -b $branch origin/$branch
         git reset --hard
         git branch -D tmp
@@ -102,12 +106,18 @@ function merge(){
         cd $repo
         branch=$repo"_branch"
         branch=`eval echo '$'"$branch"`
-        printf "$idx. $repo..."
+        echo "$idx. $repo..."
         git fetch origin > /dev/null
         log=$(git merge origin/$remote_branch --autostash)
-        if [[ "$log" != "Already up to date." ]]; then
-            git push origin HEAD:refs/for/$branch > /dev/null
-            echo -e "Merge $repo was done\n"
+        if (( $? != 0 )); then
+            echo -e "error! merge conflict on $repo\n"
+        elif [[ "$log" != "Already up to date." ]]; then
+            git push origin HEAD:refs/for/$branch 2> /dev/null
+            if (( $? != 0 )); then
+                echo -e "no changes\n"
+            else
+                echo -e "merge $repo was done\n"
+            fi
         else
             echo -e "no changes\n"
         fi
@@ -135,6 +145,11 @@ function clone(){
             echo "git clone $git failed"
             exit 1
         fi
+
+        if [[ "$amd_gits_mirror" == "y" ]]; then
+            gitdir=$(git rev-parse --git-dir); scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg ${gitdir}/hooks/
+        fi
+
         idx=$((idx+1))
     done
     echo "clone_amd_gits done"
@@ -155,7 +170,7 @@ function build(){
 
 function remove_rpath(){
     cd $1 1>&/dev/null
-    patchelf --remove-rpath ffmpeg ffprobe
+    patchelf --remove-rpath ffmpeg
     libs=(common h2enc g2dec cache)
     for lib in ${libs[@]}; do
         patchelf --remove-needed _deps/vsi_libs-build/src/vpe/prebuild/lib$lib.so ./libvpi.so
@@ -257,6 +272,12 @@ function package(){
     echo "7. removing ffmpeg rpath..."
     remove_rpath $outpath
 
+    echo "8. copying latest ffprobe and stest.sh"
+    git archive --remote=ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs spsd/develop src/vpe/prebuild/libs/x86_64_linux/ffprobe | tar xO > $outpath/ffprobe
+    git archive --remote=ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs spsd/develop src/vpe/tools/stest.sh | tar xO > $outpath/stest.sh
+    git archive --remote=ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs spsd/develop src/vpe/tools/smoke_test.sh | tar xO > $outpath/smoke_test.sh
+    git archive --remote=ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs spsd/develop src/vpe/build/install.sh | tar xO > $outpath/install.sh
+
     echo "9. packaging..."
     cd $outpath/../ 1>&/dev/null
     tar -czf $output_pkg_name.tgz $output_pkg_name/
@@ -318,7 +339,9 @@ for (( i=1; i <=$#; i++ )); do
         ma35_zsp_firmware_branch="$default_branch"
         ma35_shelf_branch="$default_branch"
         ma35_tools_branch="$default_branch"
-        ma35_branch="$default_branch";;
+        ma35_branch="$default_branch"
+        ma35_xma_branch="$default_branch"
+        ma35_ddbi_branch="$default_branch";;
     --ma35_vsi_libs_branch=*)
         echo "ma35_vsi_libs_branch=$optarg"
         ma35_vsi_libs_branch=$optarg;;
