@@ -306,7 +306,7 @@ function help(){
     echo "$0 build:                         do full build"
     echo "$0 clean:                         clean the build"
     echo "$0 install:                       install the built files into your system"
-    echo "$0 pr [branch name] [CLs]:        create PR automatically."
+    echo "$0 pr [CLs]:                      create PR automatically. CLs MUST be in same repo."
 }
 
 function check(){
@@ -318,23 +318,23 @@ function check(){
 }
 
 function create_pr(){
-    branch=$1
-    args=("$@")
-    cls=(${args[@]:1})
-
-    if [[ "$branch" == "" ]]; then
-        echo "branch is empty"
-        exit 1
-    fi
+    cls=("$@")
 
     if [[ "$cls" == "" ]] || [[ "$(echo $cls | grep gerrit)" == "" ]]; then
         echo "invalid gerrit CL"
         exit 1
     fi
 
-    echo "will release below CLs on branch \"$branch\":"
-    echo -e ${cls[@]}
+    branch=pr$(date "+%d%H%M%S")
+    echo "will release below CLs on branch $branch:"
+    for cl in ${cls[@]}; do
+        echo $cl
+    done
     repo=$(echo ${cls[0]} | grep -o 'ma35[^/]*')
+    if [[ "$(echo ${repos[@]} | grep $repo)" == "" ]]; then
+        echo "repo '$repo' is not valid"
+        exit
+    fi
     cd $repo
 
     echo -e "\n1. prepare code base..."
