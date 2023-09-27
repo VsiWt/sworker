@@ -306,7 +306,7 @@ function help(){
     echo "$0 build:                         do full build"
     echo "$0 clean:                         clean the build"
     echo "$0 install:                       install the built files into your system"
-    echo "$0 pr [branch] [title] [CL]:      create PR automatically."
+    echo "$0 pr [branch name] [CLs]:        create PR automatically."
 }
 
 function check(){
