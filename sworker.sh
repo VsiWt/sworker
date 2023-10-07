@@ -145,10 +145,11 @@ function clone(){
             echo "git clone $git failed"
             exit 1
         fi
-
+        cd $repo
         if [[ "$amd_gits_mirror" == "y" ]]; then
             gitdir=$(git rev-parse --git-dir); scp -p -P 29418 $gerrit_user@gerrit-spsd.verisilicon.com:hooks/commit-msg ${gitdir}/hooks/
         fi
+        cd -
 
         idx=$((idx+1))
     done
