@@ -1,6 +1,4 @@
 #!/bin/bash
-source $(dirname $(readlink -f $0))/update.sh
-# update_sworker
 
 root=`pwd`
 remote_branch="develop"
@@ -103,18 +101,22 @@ function merge(){
     gits=${repos[@]}
     idx=0
     for repo in ${gits[@]}; do
+        if [[ "$repo" == "ma35_xma" ]] || [[ "$repo" == "ma35_app" ]]; then
+            continue
+        fi
         cd $repo
         branch=$repo"_branch"
         branch=`eval echo '$'"$branch"`
         echo "$idx. $repo..."
+        git checkout origin/$default_branch -f 2>/dev/null
         git fetch origin > /dev/null
-        log=$(git merge origin/$remote_branch --autostash)
+        log=$(git merge origin/$remote_branch --no-ff)
         if (( $? != 0 )); then
             echo -e "error! merge conflict on $repo\n"
         elif [[ "$log" != "Already up to date." ]]; then
-            git push origin HEAD:refs/for/$branch 2> /dev/null
+            git push origin HEAD:refs/for/$branch
             if (( $? != 0 )); then
-                echo -e "no changes\n"
+                echo -e "push $repo failed\n"
             else
                 echo -e "merge $repo was done\n"
             fi
@@ -163,7 +165,7 @@ function build(){
         mkdir build
     fi
     cd build
-    cmake $root/ma35 -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_repos=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_tools=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ddbi=true -DREPO_USE_LOCAL_xma=true  -DREPO_USE_LOCAL_apps=true -DREPO_USE_LOCAL_tools=true -DREPO_USE_LOCAL_ma35=true  -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true -DREPO_BUILD_TESTS_vsi_libs=true
+    cmake $root/ma35 -G Ninja -DMA35_REPO_TAG=$remote_branch -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_repos=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_tools=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ddbi=true -DREPO_USE_LOCAL_xma=true  -DREPO_USE_LOCAL_apps=true -DREPO_USE_LOCAL_tools=true -DREPO_USE_LOCAL_ma35=true  -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true -DREPO_BUILD_TESTS_vsi_libs=true
     ninja osal ffmpeg_vsi
     cd -
     make_firmware
@@ -452,7 +454,7 @@ for (( i=1; i <=$#; i++ )); do
     clean)
         clean;;
     --help|help)
-        help ;
+        help
         exit 0;;
     *)
         echo "invalid input $optarg"
