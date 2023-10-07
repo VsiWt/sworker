@@ -280,6 +280,7 @@ function package(){
     git archive --remote=ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs spsd/develop src/vpe/tools/stest.sh | tar xO > $outpath/stest.sh
     git archive --remote=ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs spsd/develop src/vpe/tools/smoke_test.sh | tar xO > $outpath/smoke_test.sh
     git archive --remote=ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs spsd/develop src/vpe/build/install.sh | tar xO > $outpath/install.sh
+    chmod 777 $outpath/*.sh  $outpath/ffprobe
 
     echo "9. packaging..."
     cd $outpath/../ 1>&/dev/null
@@ -340,7 +341,13 @@ function create_pr(){
     fi
     cd $repo
 
-    echo -e "\n1. prepare code base..."
+    if [[ "$(git remote -v | awk '{print $1}' | grep gerrit)" == "" ]]; then
+        cmd="git remote add gerrit ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/$repo 2>/dev/null"
+        echo $cmd | sh || check $? "$cmd"
+    fi
+    cmd="git fetch gerrit $default_branch 2>/dev/null"
+    echo $cmd | sh || check $? "$cmd"
+
     cmd="git checkout origin/$remote_branch -f 2>/dev/null"
     echo $cmd | sh || check $? "$cmd"
 
@@ -349,31 +356,37 @@ function create_pr(){
 
     cmd="git checkout -b $branch 2>/dev/null"
     echo $cmd | sh || check $? "$cmd"
-    if [[ "$(git remote -v | awk '{print $1}' | grep gerrit)" == "" ]]; then
-        cmd="git remote add gerrit ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/$repo 2>/dev/null"
-        echo $cmd | sh || check $? "$cmd"
-    fi
-    cmd="git fetch gerrit spsd/develop 2>/dev/null"
-    echo $cmd | sh || check $? "$cmd"
 
-    echo -e "\n2. cherry-pick changes"
+    echo -e "\n1. cherry-pick changes"
     for cl in ${cls[@]}; do
         echo " $cl..."
         change_id=$(echo $cl | grep -oP '\+/+\K[0-9]+')
-        patch_set="${change_id: -1}"
-        cmd="git fetch ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/$repo refs/changes/${change_id: -2}/$change_id/$patch_set 2>/dev/null && git cherry-pick FETCH_HEAD 2>/dev/null"
-        echo $cmd | sh || check $? "$cmd"
+        for (( patch_set=10; patch_set--; patch_set>0 )); do
+            cmd="git fetch ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/$repo refs/changes/${change_id: -2}/$change_id/$patch_set && git cherry-pick FETCH_HEAD"
+            echo $cmd | sh 2> err.log
+            ret=$?
+            if (( $ret == 128 )); then
+                continue
+            elif (( $ret == 1 )); then
+                echo "cherry-pick $cl failed, log:"
+                cat err.log
+                return 1
+            elif (( $ret == 0 )); then
+                echo "cherry-pick $cl done"
+                break
+            fi
+        done
     done
 
-    echo -e "\n3. push changes to branch: $branch"
+    echo -e "\n2. push changes to branch: $branch"
     cmd="git push origin $branch 2>/dev/null"
     echo $cmd | sh || check $? "$cmd"
 
     cmd="gh pr create -R Xilinx-Projects/$repo --head $github_user:$branch --base $remote_branch --fill"
-    echo -e "\n4. creating PR"
+    echo -e "\n3. creating PR"
     pr_link=$(echo $cmd | sh)
     check $? "$cmd"
-    echo  "PR $pr_link had been created!"
+    echo -e "PR had been created: \n $pr_link"
 }
 
 function clean()
