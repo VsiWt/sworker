@@ -38,12 +38,12 @@ function sync_fork(){
             exit 1
         fi
         echo -e "\n$idx. sync $repo..."
+        branch=$(git branch -a | grep "\->" | cut -d ">" -f 2 | cut -d'/' -f2-)
         remote=$(git branch -a | grep "\->" | cut -d ">" -f 2 | cut -d'/' -f1)
-        if [[ "(git remote -v | grep "fetch" | grep $remote | grep "gerrit")" != "" ]]; then
-            str=$(git remote -v | grep "fetch")
-            str=${str##*:}
-            user=${str%%/*}
-            branch=$(git branch -a | grep "\->" | cut -d ">" -f 2 | cut -d'/' -f2-)
+        url=$(git remote -v | grep "fetch" | grep $remote)
+        user=${url##*:}
+        user=${user%%/*}
+        if [[ "$(echo $url | grep gerrit)" == "" ]]; then
             gh repo sync -b $branch --force $user/$repo
             if (( $? != 0 )); then
                 echo "gh repo sync failed"
@@ -97,7 +97,7 @@ function reset(){
 
 function merge(){
     gits=${repos[@]}
-    idx=0
+    idx=1
     for repo in ${gits[@]}; do
         if [[ "$repo" == "ma35_xma" ]] || [[ "$repo" == "ma35_app" ]]; then
             continue
