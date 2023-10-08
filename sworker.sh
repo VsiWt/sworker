@@ -38,8 +38,9 @@ function sync_fork(){
             exit 1
         fi
         echo -e "\n$idx. sync $repo..."
-        str=$(git remote -v | grep "fetch")
-        if [[ "$(echo $str | grep "gerrit")" == "" ]]; then
+        remote=$(git branch -a | grep "\->" | cut -d ">" -f 2 | cut -d'/' -f1)
+        if [[ "(git remote -v | grep "fetch" | grep $remote | grep "gerrit")" != "" ]]; then
+            str=$(git remote -v | grep "fetch")
             str=${str##*:}
             user=${str%%/*}
             branch=$(git branch -a | grep "\->" | cut -d ">" -f 2 | cut -d'/' -f2-)
