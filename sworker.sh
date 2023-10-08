@@ -64,7 +64,7 @@ function sync(){
     idx=1
     for repo in ${repos[@]}; do
         cd $repo
-        branch=$(git branch -a | grep "\->" | cut -d ">" -f 2 | cut -d'/' -f2-)
+        branch=$(git branch | awk '{print $2}')
         echo -e "\n$idx. updating $repo...$branch"
         git config pull.rebase false
         git pull origin $branch
@@ -80,7 +80,7 @@ function reset(){
     for repo in ${repos[@]}; do
         cd $repo
         git clean -xdf
-        branch=$(git branch -a | grep "\->" | cut -d ">" -f 2 | cut -d'/' -f2-)
+        branch=$(git branch | awk '{print $2}')
         echo -e "\n$idx. updating $repo...$branch"
         git merge --abort 2> /dev/null
         git branch -D tmp 2> /dev/null
@@ -103,10 +103,9 @@ function merge(){
             continue
         fi
         cd $repo
-        branch=$repo"_branch"
-        branch=`eval echo '$'"$branch"`
+        branch=$(git branch | awk '{print $2}')
         echo "$idx. $repo..."
-        git checkout origin/$default_branch -f 2>/dev/null
+        git checkout origin/$branch -f 2>/dev/null
         git fetch origin > /dev/null
         log=$(git merge origin/$remote_branch --no-ff)
         if (( $? != 0 )); then
@@ -130,6 +129,7 @@ function clone(){
     gits=${repos[@]}
     cd $root;
     idx=1
+    sudo rm build -rf
     for repo in ${gits[@]}; do
         branch=$repo"_branch"
         branch=`eval echo '$'"$branch"`
