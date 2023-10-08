@@ -37,19 +37,18 @@ function sync_fork(){
             echo "repo $repo is not exist"
             exit 1
         fi
-        str=$(git remote -v | grep "fetch")
-        str=${str##*:}
-        user=${str%%/*}
-        branch=$repo"_branch"
-        branch=`eval echo '$'"$branch"`
         echo -e "\n$idx. sync $repo..."
-        if [[ "$(git remote -v | grep "gerrit")" == "" ]]; then
+        str=$(git remote -v | grep "fetch")
+        if [[ "$(echo $str | grep "gerrit")" == "" ]]; then
+            str=${str##*:}
+            user=${str%%/*}
+            branch=$(git branch -a | grep "\->" | cut -d ">" -f 2 | cut -d'/' -f2-)
             gh repo sync -b $branch --force $user/$repo
             if (( $? != 0 )); then
                 echo "gh repo sync failed"
                 exit 1
             fi
-            echo "$user/$repo had been synced"
+            echo "$user/$repo...$branch had been synced"
         else
             echo "$repo is not a fork, skip"
         fi
@@ -64,9 +63,8 @@ function sync(){
     idx=1
     for repo in ${repos[@]}; do
         cd $repo
-        branch=$repo"_branch"
-        branch=`eval echo '$'"$branch"`
-        echo -e "\n$idx. updating $repo..."
+        branch=$(git branch -a | grep "\->" | cut -d ">" -f 2 | cut -d'/' -f2-)
+        echo -e "\n$idx. updating $repo...$branch"
         git config pull.rebase false
         git pull origin $branch
         idx=$((idx+1))
@@ -81,9 +79,8 @@ function reset(){
     for repo in ${repos[@]}; do
         cd $repo
         git clean -xdf
-        branch=$repo"_branch"
-        branch=`eval echo '$'"$branch"`
-        echo -e "\n$idx. updating $repo..."
+        branch=$(git branch -a | grep "\->" | cut -d ">" -f 2 | cut -d'/' -f2-)
+        echo -e "\n$idx. updating $repo...$branch"
         git merge --abort 2> /dev/null
         git branch -D tmp 2> /dev/null
         git checkout -b tmp
@@ -165,7 +162,7 @@ function build(){
         mkdir build
     fi
     cd build
-    cmake $root/ma35 -G Ninja -DMA35_REPO_TAG=$remote_branch -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_repos=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_tools=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ddbi=true -DREPO_USE_LOCAL_xma=true  -DREPO_USE_LOCAL_apps=true -DREPO_USE_LOCAL_tools=true -DREPO_USE_LOCAL_ma35=true  -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true -DREPO_BUILD_TESTS_vsi_libs=true
+    cmake $root/ma35 -G Ninja -DMA35_REPO_TAG=$remote_branch -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_repos=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_tools=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ddbi=true -DREPO_USE_LOCAL_xma=true -DREPO_USE_LOCAL_apps=true -DREPO_USE_LOCAL_tools=true -DREPO_USE_LOCAL_ma35=true  -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true -DREPO_BUILD_TESTS_vsi_libs=true
     ninja osal ffmpeg_vsi
     cd -
     make_firmware
