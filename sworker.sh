@@ -59,6 +59,20 @@ function sync_fork(){
     echo "fetch_amd_gits done"
 }
 
+#delete old fork and create new fork
+function reset_fork(){
+    cd $root;
+    idx=1
+    for repo in ${repos[@]}; do
+        echo -e "\ndeleting $repo"
+        gh repo delete $github_user/$repo --confirm
+        echo "fork $repo"
+        gh repo fork Xilinx-Projects/$repo --clone=false
+        idx=$((idx+1))
+    done
+    echo "reset_fork done"
+}
+
 function sync(){
     cd $root;
     idx=1
@@ -246,11 +260,8 @@ function package(){
 
     ## copy cmodel related
     echo "3. copying cmodel files..."
-    cp $root/ma35_shelf/ma35_sn_int/libxabr_sim.so $outpath/cmodel/
-    cp $root/ma35_shelf/ma35_sn_int/libvc8000d_sim.so $outpath/cmodel/
-    cp $root/ma35_shelf/ma35_sn_int/libxav1_sim.so $outpath/cmodel/
-    cp $root/ma35_shelf/ma35_sn_int/libvc8000e_sim.so $outpath/cmodel/
-    cp $root/ma35_shelf/host_device_algo/libhost_device_algo.so $outpath/
+    cp $root/ma35_shelf/ma35_sn_int/*.so $outpath/cmodel/
+    cp $root/ma35_shelf/host_device_algo/*.so $outpath/
 
     ## copy drivers
     echo "4. copying driver source code..."
@@ -303,6 +314,7 @@ function help(){
     echo "$0 clone:                         clone all of the gits"
     echo "$0 sync:                          sync the full codebase."
     echo "$0 sync_fork:                     If you worked on a forked github codebase, this command can help to sync from main git."
+    echo "$0 reset_fork:                    delete old fork and create new fork."
     echo "$0 reset:                         reset all repos to remote head"
     echo "$0 merge:                         merge remote changes to head of gits"
     echo "$0 build:                         do full build"
@@ -453,6 +465,8 @@ for (( i=1; i <=$#; i++ )); do
         i=$((i+1)); create_pr "${@:$i}" ;;
     sync_fork)
         sync_fork;;
+    reset_fork)
+        reset_fork;;
     reset)
         reset;;
     merge)
