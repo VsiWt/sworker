@@ -78,7 +78,7 @@ function sync(){
     idx=1
     for repo in ${repos[@]}; do
         cd $repo
-        branch=$(git branch | awk '{print $2}')
+        branch=$(git branch --show-current)
         echo -e "\n$idx. updating $repo...$branch"
         git config pull.rebase false
         git pull origin $branch
@@ -94,7 +94,11 @@ function reset(){
     for repo in ${repos[@]}; do
         cd $repo
         git clean -xdf
-        branch=$(git branch | awk '{print $2}')
+        if [[ "$1" != "" ]]; then
+            branch=$1
+        else
+            branch=$(git branch --show-current)
+        fi
         echo -e "\n$idx. updating $repo...$branch"
         git merge --abort 2> /dev/null
         git branch -D tmp 2> /dev/null
@@ -117,7 +121,7 @@ function merge(){
             continue
         fi
         cd $repo
-        branch=$(git branch | awk '{print $2}')
+        branch=$(git branch --show-current)
         echo "$idx. $repo..."
         git checkout origin/$branch -f 2>/dev/null
         git fetch origin > /dev/null
@@ -178,7 +182,7 @@ function build(){
     fi
     cd build
     cmake $root/ma35 -G Ninja -DMA35_REPO_TAG=$remote_branch -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_repos=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_tools=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ddbi=true -DREPO_USE_LOCAL_xma=true -DREPO_USE_LOCAL_apps=true -DREPO_USE_LOCAL_tools=true -DREPO_USE_LOCAL_ma35=true  -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true -DREPO_BUILD_TESTS_vsi_libs=true
-    ninja osal ffmpeg_vsi
+    ninja osal ffmpeg_vsi kernel_module
     cd -
     make_firmware
 }
@@ -315,7 +319,7 @@ function help(){
     echo "$0 sync:                          sync the full codebase."
     echo "$0 sync_fork:                     If you worked on a forked github codebase, this command can help to sync from main git."
     echo "$0 reset_fork:                    delete old fork and create new fork."
-    echo "$0 reset:                         reset all repos to remote head"
+    echo "$0 reset [branch]:                reset all repos to target branch, if target branch is not specified, then reset to default remote branch"
     echo "$0 merge:                         merge remote changes to head of gits"
     echo "$0 build:                         do full build"
     echo "$0 clean:                         clean the build"
@@ -468,7 +472,7 @@ for (( i=1; i <=$#; i++ )); do
     reset_fork)
         reset_fork;;
     reset)
-        reset;;
+        i=$((i+1)); reset ${@:$i};;
     merge)
         merge;;
     build)
