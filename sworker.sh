@@ -181,7 +181,8 @@ function build(){
         mkdir build
     fi
     cd build
-    cmake $root/ma35 -G Ninja -DMA35_REPO_TAG=$remote_branch -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_repos=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_tools=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ddbi=true -DREPO_USE_LOCAL_xma=true -DREPO_USE_LOCAL_apps=true -DREPO_USE_LOCAL_tools=true -DREPO_USE_LOCAL_ma35=true  -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true -DREPO_BUILD_TESTS_vsi_libs=true
+    cmake $root/ma35 -G Ninja -DMA35_REPO_TAG=$remote_branch -DCMAKE_BUILD_TYPE=Debug -DMA35_FORCE_NO_PRIVATE_repos=true -DREPO_USE_LOCAL_shelf=true -DREPO_USE_LOCAL_vsi_libs=true -DREPO_USE_LOCAL_tools=true -DREPO_USE_LOCAL_linux_kernel=true -DREPO_USE_LOCAL_osal=true -DREPO_USE_LOCAL_ddbi=true -DREPO_USE_LOCAL_xma=true -DREPO_USE_LOCAL_apps=true -DREPO_USE_LOCAL_tools=true -DREPO_USE_LOCAL_ma35=true  -DREPO_USE_LOCAL_ffmpeg=true -DREPO_USE_LOCAL_zsp_firmware=true -DREPO_USE_LOCAL_shelf=true -DREPO_BUILD_TESTS_vsi_libs=true -DMA35_KERNEL_MODULE_VERSION=$( uname -r)
+    ninja
     ninja osal ffmpeg_vsi
     ninja kernel_module
     cd -
@@ -291,6 +292,7 @@ function package(){
 
     echo "8. copying latest ffprobe and stest.sh"
     git archive --remote=ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs spsd/develop src/vpe/prebuild/libs/x86_64_linux/ffprobe | tar xO > $outpath/ffprobe
+    git archive --remote=ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs spsd/develop src/vpe/prebuild/firmware/ctrl_prefetchable_VF_PF_BAR4_512_class_code_Gen4.bin | tar xO > $outpath/firmware/ctrl_prefetchable_VF_PF_BAR4_512_class_code_Gen4.bin
     git archive --remote=ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs spsd/develop src/vpe/tools/stest.sh | tar xO > $outpath/stest.sh
     git archive --remote=ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs spsd/develop src/vpe/tools/smoke_test.sh | tar xO > $outpath/smoke_test.sh
     git archive --remote=ssh://$gerrit_user@gerrit-spsd.verisilicon.com:29418/github/Xilinx-Projects/ma35_vsi_libs spsd/develop src/vpe/build/install.sh | tar xO > $outpath/install.sh
